@@ -36,7 +36,42 @@ To build and run the API using Docker, follow these steps:
 
 ---
 
-## 1. Create User Tests
+
+## Running Tests
+
+### Method 1: Running Tests Inside Container
+
+1. List your running containers:
+```bash
+docker ps
+```
+
+2. Enter into the running web container:
+```bash
+# Using container name
+docker exec -it your_container_name bash
+
+# OR using container ID
+docker exec -it your_container_id bash
+```
+
+3. Inside the container, run the tests:
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/routes/test_routes.py
+pytest tests/services/test_user_service.py
+
+# Run with coverage
+pytest --cov=app tests/
+```
+
+|_____________________________________________
+ 
+
+## Running Api Call
 
 ### Create user successfully
 ```bash

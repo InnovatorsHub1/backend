@@ -11,3 +11,5 @@ itsdangerous==2.2.0
 Jinja2==3.1.5
 MarkupSafe==3.0.2
 dnspython==2.1.0
+pytest==7.4.0
+pytest-cov==4.1.0

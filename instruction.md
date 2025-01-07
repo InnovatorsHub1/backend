@@ -13,6 +13,9 @@ FLASK_ENV=development
 MONGO_USERNAME=flaskuser
 MONGO_PASSWORD=your_secure_password
 MONGO_DB=flask_api
+LOG_LEVEL=INFO
+LOG_FORMAT=default  
+
 ```
 
 ---

@@ -1,8 +1,9 @@
 from app import mongo
 from app.models.user import User
+from app.errors.exceptions import APIError
 from bson import ObjectId
 from bson.errors import InvalidId
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import re
 
@@ -13,51 +14,49 @@ class UserService:
         return bool(re.match(pattern, email))
 
     @staticmethod
-    def validate_user_data(data: Dict[str, Any], is_update: bool = False) -> Optional[str]:
+    def validate_user_data(data: Dict[str, Any], is_update: bool = False) -> None:
         if not is_update:
             required_fields = ["username", "email"]
             if not all(field in data for field in required_fields):
-                return "Missing required fields: username and email"
+                raise APIError("Missing required fields: username and email", 400)
 
         if "email" in data and not UserService.validate_email(data["email"]):
-            return "Invalid email format"
+            raise APIError("Invalid email format", 400)
 
         if "username" in data and (not isinstance(data["username"], str) or len(data["username"]) < 3):
-            return "Username must be a string with at least 3 characters"
-
-        return None
+            raise APIError("Username must be a string with at least 3 characters", 400)
 
     @staticmethod
-    def create_user(user_data: Dict[str, Any]) -> Tuple[Optional[User], Optional[str]]:
+    def create_user(user_data: Dict[str, Any]) -> User:
         try:
             # Validate input data
-            validation_error = UserService.validate_user_data(user_data)
-            if validation_error:
-                return None, validation_error
+            UserService.validate_user_data(user_data)
 
             # Check if user exists
             if mongo.db.users.find_one({"email": user_data["email"], "isDeleted": False}):
-                return None, "Email already exists"
+                raise APIError("Email already exists", 400)
             
             user = User(**user_data)
             result = mongo.db.users.insert_one(user.to_dict())
             user._id = str(result.inserted_id)
-            return user, None
+            return user
 
+        except APIError:
+            raise
         except Exception as e:
-            return None, f"Error creating user: {str(e)}"
+            raise APIError(f"Error creating user: {str(e)}", 500)
 
     @staticmethod
-    def get_all_users(include_deleted: bool = False) -> Tuple[List[User], Optional[str]]:
+    def get_all_users(include_deleted: bool = False) -> List[User]:
         try:
             query = {} if include_deleted else {"isDeleted": False}
             users = mongo.db.users.find(query)
-            return [User.from_dict(user) for user in users], None
+            return [User.from_dict(user) for user in users]
         except Exception as e:
-            return [], f"Error fetching users: {str(e)}"
+            raise APIError(f"Error fetching users: {str(e)}", 500)
 
     @staticmethod
-    def get_user_by_id(user_id: str, include_deleted: bool = False) -> Tuple[Optional[User], Optional[str]]:
+    def get_user_by_id(user_id: str, include_deleted: bool = False) -> User:
         try:
             query = {"_id": ObjectId(user_id)}
             if not include_deleted:
@@ -65,35 +64,33 @@ class UserService:
                 
             user = mongo.db.users.find_one(query)
             if not user:
-                return None, "User not found"
+                raise APIError("User not found", 404)
                 
-            return User.from_dict(user), None
+            return User.from_dict(user)
         except InvalidId:
-            return None, "Invalid user ID format"
+            raise APIError("Invalid user ID format", 400)
+        except APIError:
+            raise
         except Exception as e:
-            return None, f"Error fetching user: {str(e)}"
+            raise APIError(f"Error fetching user: {str(e)}", 500)
 
     @staticmethod
-    def update_user(user_id: str, user_data: Dict[str, Any]) -> Tuple[Optional[User], Optional[str]]:
+    def update_user(user_id: str, user_data: Dict[str, Any]) -> User:
         try:
             # Validate input data
-            validation_error = UserService.validate_user_data(user_data, is_update=True)
-            if validation_error:
-                return None, validation_error
+            UserService.validate_user_data(user_data, is_update=True)
 
-            # Check if user exists
-            user, error = UserService.get_user_by_id(user_id)
-            if error:
-                return None, error
+            # Check if user exists and get current user data
+            current_user = UserService.get_user_by_id(user_id)
 
             # Check email uniqueness if email is being updated
-            if "email" in user_data and user_data["email"] != user.email:
+            if "email" in user_data and user_data["email"] != current_user.email:
                 if mongo.db.users.find_one({
                     "email": user_data["email"], 
                     "_id": {"$ne": ObjectId(user_id)},
                     "isDeleted": False
                 }):
-                    return None, "Email already exists"
+                    raise APIError("Email already exists", 400)
 
             # Update user
             user_data["updated_at"] = datetime.utcnow()
@@ -102,28 +99,31 @@ class UserService:
                 {"$set": user_data}
             )
             
-            if result.modified_count:
-                return UserService.get_user_by_id(user_id)[0], None
-            return None, "Failed to update user"
+            if result.modified_count == 0:
+                raise APIError("Failed to update user", 400)
+
+            return UserService.get_user_by_id(user_id)
 
         except InvalidId:
-            return None, "Invalid user ID format"
+            raise APIError("Invalid user ID format", 400)
+        except APIError:
+            raise
         except Exception as e:
-            return None, f"Error updating user: {str(e)}"
+            raise APIError(f"Error updating user: {str(e)}", 500)
 
     @staticmethod
-    def delete_user(user_id: str) -> Tuple[bool, Optional[str]]:
+    def delete_user(user_id: str) -> None:
         try:
-            # First check if user exists at all
+            # Check if user exists
             user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
             if not user:
-                return False, "User with this ID does not exist"
+                raise APIError("User with this ID does not exist", 404)
             
-            # Then check if user is already deleted
+            # Check if user is already deleted
             if user.get('isDeleted', False):
-                return False, "User is already deleted"
+                raise APIError("User is already deleted", 400)
 
-            # If user exists and is not deleted, perform soft delete
+            # Perform soft delete
             result = mongo.db.users.update_one(
                 {"_id": ObjectId(user_id), "isDeleted": False},
                 {
@@ -134,28 +134,29 @@ class UserService:
                 }
             )
             
-            if result.modified_count:
-                return True, None
-            
-            return False, "Failed to delete user"
-            
+            if result.modified_count == 0:
+                raise APIError("Failed to delete user", 400)
+
         except InvalidId:
-            return False, "Invalid user ID format"
+            raise APIError("Invalid user ID format", 400)
+        except APIError:
+            raise
         except Exception as e:
-            return False, f"Error occurred: {str(e)}"
+            raise APIError(f"Error deleting user: {str(e)}", 500)
 
     @staticmethod
-    def restore_user(user_id: str) -> Tuple[Optional[User], Optional[str]]:
+    def restore_user(user_id: str) -> User:
         try:
-            # First check if user exists
+            # Check if user exists
             user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
             if not user:
-                return None, "User with this ID does not exist"
+                raise APIError("User with this ID does not exist", 404)
             
-            # Then check if user is actually deleted
+            # Check if user is actually deleted
             if not user.get('isDeleted', False):
-                return None, "User is not deleted"
+                raise APIError("User is not deleted", 400)
 
+            # Restore user
             result = mongo.db.users.update_one(
                 {"_id": ObjectId(user_id), "isDeleted": True},
                 {
@@ -166,12 +167,14 @@ class UserService:
                 }
             )
             
-            if result.modified_count:
-                return UserService.get_user_by_id(user_id)[0], None
-                
-            return None, "Failed to restore user"
+            if result.modified_count == 0:
+                raise APIError("Failed to restore user", 400)
+
+            return UserService.get_user_by_id(user_id)
 
         except InvalidId:
-            return None, "Invalid user ID format"
+            raise APIError("Invalid user ID format", 400)
+        except APIError:
+            raise
         except Exception as e:
-            return None, f"Error restoring user: {str(e)}"
+            raise APIError(f"Error restoring user: {str(e)}", 500)

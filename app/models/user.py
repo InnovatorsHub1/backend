@@ -1,4 +1,3 @@
-# app/models/user.py
 from datetime import datetime
 from bson import ObjectId
 from dataclasses import dataclass, field

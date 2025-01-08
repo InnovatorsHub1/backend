@@ -9,8 +9,10 @@ services:
     environment:
       - FLASK_ENV=development
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - mongodb
+      - redis
     networks:
       - app-network
 
@@ -26,9 +28,20 @@ services:
       - mongodb_data:/data/db
     networks:
       - app-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    command: redis-server --appendonly yes
   
 volumes:
   mongodb_data:
+  redis_data:
 
 networks:
   app-network:

@@ -14,7 +14,9 @@ MONGO_USERNAME=flaskuser
 MONGO_PASSWORD=your_secure_password
 MONGO_DB=flask_api
 LOG_LEVEL=INFO
-LOG_FORMAT=default  
+LOG_FORMAT=default
+REDIS_URL=redis://redis:6379/0
+REDIS_CACHE_TIMEOUT=3600
 
 ```
 

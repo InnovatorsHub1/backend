@@ -7,15 +7,24 @@ from app.utils.logger import setup_logger, RequestLoggingMiddleware
 from app.services.mongodb_service import MongoDBService
 from app.services.redis_cache_service import RedisCacheService
 from app.services.user_service import UserService
+from app.services.health_service import HealthService
+from app.routes.user_routes import user_bp
+from app.routes.health_routes import health_bp
 
 mongo = PyMongo()
 
 def initialize_services(app, db_service=None, cache_service=None):
+    """Initialize application services"""
     if not db_service:
         db_service = MongoDBService(mongo)
     if not cache_service:
         cache_service = RedisCacheService(app.config["REDIS_URL"])
+    
+    # Initialize user service
     app.user_service = UserService(db_service, cache_service)
+    
+    # Initialize health service
+    app.health_service = HealthService(app, db_service, cache_service)
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -42,9 +51,8 @@ def create_app(test_config=None):
     # Register error handlers
     register_error_handlers(app)
 
-
     # Register blueprints
-    from app.routes.user_routes import user_bp
     app.register_blueprint(user_bp)
+    app.register_blueprint(health_bp)
 
     return app

@@ -186,6 +186,93 @@ curl -X POST http://localhost:5000/api/users/USER_ID/restore
 curl -X POST http://localhost:5000/api/users/USER_ID/restore
 ```
 
+---
+
+## 7. Health Check Tests
+
+### Get basic health status
+```bash
+curl http://localhost:5000/health/
+```
+
+Example response:
+```json
+{
+    "status": "healthy",
+    "timestamp": "2024-01-09T10:30:45.123456",
+    "dependencies": {
+        "mongodb": {
+            "status": "healthy",
+            "latency_ms": 0
+        },
+        "redis": {
+            "status": "healthy",
+            "latency_ms": 0
+        }
+    }
+}
+```
+
+### Get detailed health metrics
+```bash
+curl http://localhost:5000/health/detailed
+```
+
+Example response:
+```json
+{
+    "health": {
+        "status": "healthy",
+        "timestamp": "2024-01-09T10:30:45.123456",
+        "dependencies": {
+            "mongodb": {"status": "healthy"},
+            "redis": {"status": "healthy"}
+        }
+    },
+    "system_metrics": {
+        "cpu": {
+            "usage_percent": 45.2
+        },
+        "memory": {
+            "total_gb": 16.0,
+            "used_gb": 8.5,
+            "usage_percent": 53.1
+        },
+        "disk": {
+            "total_gb": 512.0,
+            "used_gb": 256.0,
+            "usage_percent": 50.0
+        }
+    },
+    "application_metrics": {
+        "uptime_seconds": 3600,
+        "user_count": 1000,
+        "deleted_user_count": 50,
+        "python_process": {
+            "memory_usage_mb": 156.8,
+            "cpu_usage_percent": 2.5
+        }
+    }
+}
+```
+
+### Get application metrics
+```bash
+curl http://localhost:5000/health/metrics
+```
+
+Example response:
+```json
+{
+    "uptime_seconds": 3600,
+    "user_count": 1000,
+    "deleted_user_count": 50,
+    "python_process": {
+        "memory_usage_mb": 156.8,
+        "cpu_usage_percent": 2.5
+    }
+}
+```
 
 
 

@@ -38,6 +38,16 @@ services:
     networks:
       - app-network
     command: redis-server --appendonly yes
+
+  worker:
+    build: .
+    command: python worker.py
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    networks:
+      - app-network
   
 volumes:
   mongodb_data:

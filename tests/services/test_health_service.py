@@ -3,7 +3,10 @@ import json
 from datetime import datetime
 from pymongo.errors import ServerSelectionTimeoutError
 from redis.exceptions import ConnectionError as RedisConnectionError
-from tests.conftest import MockDBService, MockRedisClient, MockRedis
+
+from tests.mocks.mock_db_service import MockDBService
+from tests.mocks.mock_redis import MockRedisClient
+
 
 class MockHealthDBService(MockDBService):
     def __init__(self):

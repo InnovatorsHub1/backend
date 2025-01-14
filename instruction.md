@@ -275,9 +275,21 @@ Example response:
 ```
 
 
+---
+
+## 8. Queue Tests
 
 
+```bash
+curl -X POST http://localhost:5000/api/queue/jobs \
+    -H "Content-Type: application/json" \
+    -d '{"key": "value"}'
+```
 
+# Check status
+```bash
+curl http://localhost:5000/api/queue/jobs/<job_id>
+```
 
 
 

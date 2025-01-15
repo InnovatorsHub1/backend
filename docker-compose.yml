@@ -8,8 +8,8 @@ services:
       - .:/app
     environment:
       - FLASK_ENV=development
-      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
-      - REDIS_URL=redis://redis:6379/0
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_IP}:27017/${MONGO_DB}?authSource=admin
+      - REDIS_URL=${REDIS_URL}
     depends_on:
       - mongodb
       - redis

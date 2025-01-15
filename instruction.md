@@ -10,6 +10,7 @@ Create an `.env` file in the root of your project with the following contents:
 
 ```
 FLASK_ENV=development
+MONGO_IP=mongodb
 MONGO_USERNAME=flaskuser
 MONGO_PASSWORD=your_secure_password
 MONGO_DB=flask_api
@@ -66,7 +67,7 @@ docker exec -it your_container_id bash
 pytest
 
 # Run specific test file
-pytest tests/routes/test_routes.py
+pytest tests/routes/test_user_routes.py
 pytest tests/services/test_user_service.py
 
 # Run with coverage

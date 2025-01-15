@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice #{{ invoice_number }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+        .invoice-title {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .invoice-details {
+            margin-bottom: 30px;
+        }
+        .customer-info {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .invoice-table th,
+        .invoice-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .invoice-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .totals {
+            float: right;
+            width: 300px;
+        }
+        .totals table {
+            width: 100%;
+        }
+        .totals table td {
+            padding: 8px;
+        }
+        .totals table td:last-child {
+            text-align: right;
+        }
+        .total-row {
+            font-weight: bold;
+            font-size: 18px;
+            border-top: 2px solid #2c3e50;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <div class="invoice-title">INVOICE</div>
+        <div>Invoice #: {{ invoice_number }}</div>
+        <div>Date: {{ date }}</div>
+    </div>
+
+    <div class="invoice-details">
+        <div class="customer-info">
+            <div class="section-title">Bill To:</div>
+            <div>{{ customer.name }}</div>
+            <div>{{ customer.email }}</div>
+        </div>
+    </div>
+
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>${{ "%.2f"|format(item.price) }}</td>
+                <td>${{ "%.2f"|format(item.total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td>${{ "%.2f"|format(subtotal) }}</td>
+            </tr>
+            <tr>
+                <td>Tax (10%):</td>
+                <td>${{ "%.2f"|format(tax) }}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Total:</td>
+                <td>${{ "%.2f"|format(total) }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Thank you for your business!
+    </div>
+</body>
+</html>

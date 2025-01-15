@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class TestCreateUser:
-    """Test user creation endpoint"""
+    """Test user creation endpoint """
     
     def test_create_user_success(self, client, mock_user_data, headers):
         """Test successful user creation"""

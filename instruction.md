@@ -10,7 +10,6 @@ Create an `.env` file in the root of your project with the following contents:
 
 ```
 FLASK_ENV=development
-MONGO_IP=mongodb
 MONGO_USERNAME=flaskuser
 MONGO_PASSWORD=your_secure_password
 MONGO_DB=flask_api
@@ -67,7 +66,7 @@ docker exec -it your_container_id bash
 pytest
 
 # Run specific test file
-pytest tests/routes/test_user_routes.py
+pytest tests/routes/test_routes.py
 pytest tests/services/test_user_service.py
 
 # Run with coverage
@@ -276,9 +275,52 @@ Example response:
 ```
 
 
+---
+
+## 8. Queue Tests
 
 
+```bash
+curl -X POST http://localhost:5000/api/queue/jobs \
+    -H "Content-Type: application/json" \
+    -d '{"key": "value"}'
+```
 
+# Check status
+```bash
+curl http://localhost:5000/api/queue/jobs/<job_id>
+```
+
+
+## 9. PDF Generation Tests
+
+### Generate Invoice PDF
+```bash
+curl -X POST http://localhost:5000/api/pdf/generate/invoice \
+-H "Content-Type: application/json" \
+-d '{
+    "invoice_number": "INV-001",
+    "date": "2024-01-15",
+    "customer": {
+        "name": "John Doe",
+        "email": "john@example.com"
+    },
+    "items": [
+        {
+            "name": "Product A",
+            "quantity": 2,
+            "price": 99.99
+        },
+        {
+            "name": "Product B",
+            "quantity": 1,
+            "price": 149.99
+        }
+    ]
+}' \
+--output invoice.pdf
+
+```
 
 
 

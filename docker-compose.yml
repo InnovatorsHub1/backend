@@ -6,8 +6,11 @@ services:
       - "5000:5000"
     volumes:
       - .:/app
+      - ./app/templates:/app/app/templates
     environment:
+      - FLASK_APP=app
       - FLASK_ENV=development
+      - FLASK_DEBUG=1
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
       - REDIS_URL=redis://redis:6379/0
     depends_on:
@@ -15,6 +18,7 @@ services:
       - redis
     networks:
       - app-network
+    restart: unless-stopped
 
   mongodb:
     image: mongo:latest
@@ -48,6 +52,7 @@ services:
       - redis
     networks:
       - app-network
+    restart: unless-stopped
   
 volumes:
   mongodb_data:

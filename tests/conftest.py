@@ -1,9 +1,11 @@
+from app.services.pdf_service import PDFService
 import pytest
 from app.services.redis_cache_service import RedisCacheService
 from app.services.user_service import UserService
 from app import create_app
 
 
+from tests.mocks.mock_pdf import MockPDFService
 from tests.mocks.mock_db_service import MockDBService
 from tests.mocks.mock_queue import MockQueueService
 from tests.mocks.mock_redis import MockRedis
@@ -30,7 +32,12 @@ def mock_queue():
     return MockQueueService()
 
 @pytest.fixture
-def app(mock_redis, mock_db, mock_queue):
+def mock_pdf():
+    """Create mock PDF service instance"""
+    return MockPDFService()
+
+@pytest.fixture
+def app(mock_redis, mock_db, mock_queue, mock_pdf):
     """Create test Flask application with mocked services"""
     app = create_app()
     app.config.update({
@@ -46,7 +53,8 @@ def app(mock_redis, mock_db, mock_queue):
     
     # Replace services
     app.user_service = UserService(mock_db, cache_service)
-    app.queue_service = mock_queue  # Add queue service
+    app.queue_service = mock_queue  
+    app.pdf_service = mock_pdf
 
     return app
 
@@ -90,4 +98,4 @@ def setup_and_teardown(app):
         if hasattr(app.user_service.cache, '_redis_client'):
             app.user_service.cache._redis_client.flushdb()  # Clear cache
     if hasattr(app, 'queue_service'):
-        app.queue_service = MockQueueService()  # Reset queue
+        app.queue_service = MockQueueService()

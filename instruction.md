@@ -1,9 +1,3 @@
-# User API Tests
-
-This document provides a comprehensive guide to testing the User API, including creating, retrieving, updating, deleting, and restoring users. Each section includes `curl` commands for testing various API endpoints.
-
----
-
 ## Environment Configuration
 
 Create an `.env` file in the root of your project with the following contents:
@@ -20,8 +14,41 @@ REDIS_CACHE_TIMEOUT=3600
 
 ```
 
----
+## Installing Docker
 
+To use this guide, you need Docker and Docker Desktop installed. Follow the instructions below based on your operating system:
+
+### For Mac
+1. Download Docker Desktop from the [official Docker website](https://www.docker.com/products/docker-desktop/).
+2. Install Docker Desktop by following the on-screen instructions.
+3. Launch Docker Desktop and ensure it is running.
+
+### For Windows
+1. Download Docker Desktop from the [official Docker website](https://www.docker.com/products/docker-desktop/).
+2. Install Docker Desktop by following the on-screen instructions.
+3. Ensure WSL 2 is enabled if prompted.
+4. Launch Docker Desktop and verify it is running.
+
+### For Linux
+1. Install Docker:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install docker.io
+   ```
+2. Install Docker Compose:
+   ```bash
+   sudo apt-get install docker-compose
+   ```
+3. Verify installation:
+   ```bash
+   docker --version
+   docker-compose --version
+   ```
+
+
+Once Docker is installed, proceed to the next section to build and run the API.
+
+---
 
 ## Running the API in Docker
 
@@ -33,35 +60,39 @@ To build and run the API using Docker, follow these steps:
    ```bash
    docker-compose up --build
    ```
-4. To stop and remove the containers, run:
+4. The API should now be accessible at `http://localhost:5000`. Use the above `curl` commands to test the endpoints.
+
+---
+
+## Restarting and Cleaning Docker
+
+To restart and clean up Docker containers, images, and volumes, follow these steps:
+
+1. Stop all containers:
    ```bash
    docker-compose down
    ```
-5. The API should now be accessible at `http://localhost:5000`. Use the above `curl` commands to test the endpoints.
 
+2. Remove all images, volumes, and containers:
+   ```bash
+   docker system prune -a --volumes -f
+   ```
 
-## rebuild your Docker containers:
+3. If you are using Docker Desktop:
+   - Open Docker Desktop.
+   - Go to the "Images" or "Containers" tab.
+   - Manually delete any remaining resources.
 
-# Stop containers
-```
-docker-compose down
-```
-
-# Remove old images
-```
-docker system prune -f
-```
-
-# Rebuild and start
-```
+Once cleaned, rebuild the Docker containers:
+```bash
 docker-compose up --build
 ```
----
 
+---
 
 ## Running Tests
 
-### Method 1: Running Tests Inside Container
+Running Tests Inside Container
 
 1. List your running containers:
 ```bash
@@ -90,12 +121,13 @@ pytest tests/services/test_user_service.py
 pytest --cov=app tests/
 ```
 
-|_____________________________________________
- 
+--------------------------------------------
 
-## Running Api Call
 
-### Create user successfully
+## Running API Calls
+
+Create user successfully
+
 ```bash
 curl -X POST http://localhost:5000/api/users/ \
 -H "Content-Type: application/json" \
@@ -105,7 +137,8 @@ curl -X POST http://localhost:5000/api/users/ \
 }'
 ```
 
-### Create user with invalid email
+Create user with invalid email
+
 ```bash
 curl -X POST http://localhost:5000/api/users/ \
 -H "Content-Type: application/json" \
@@ -115,7 +148,8 @@ curl -X POST http://localhost:5000/api/users/ \
 }'
 ```
 
-### Create user with missing fields
+Create user with missing fields
+
 ```bash
 curl -X POST http://localhost:5000/api/users/ \
 -H "Content-Type: application/json" \
@@ -156,7 +190,7 @@ curl http://localhost:5000/api/users/65939d8b1d41a8001d123456
 
 ## 4. Update User Tests
 
-### Update user successfully
+#### Update user successfully
 ```bash
 curl -X PUT http://localhost:5000/api/users/USER_ID \
 -H "Content-Type: application/json" \
@@ -166,7 +200,7 @@ curl -X PUT http://localhost:5000/api/users/USER_ID \
 }'
 ```
 
-### Update with invalid email
+#### Update with invalid email
 ```bash
 curl -X PUT http://localhost:5000/api/users/USER_ID \
 -H "Content-Type: application/json" \
@@ -179,12 +213,12 @@ curl -X PUT http://localhost:5000/api/users/USER_ID \
 
 ## 5. Delete User Tests
 
-### Delete existing user
+#### Delete existing user
 ```bash
 curl -X DELETE http://localhost:5000/api/users/USER_ID
 ```
 
-### Delete already deleted user
+#### Delete already deleted user
 ```bash
 curl -X DELETE http://localhost:5000/api/users/USER_ID
 ```
@@ -193,12 +227,12 @@ curl -X DELETE http://localhost:5000/api/users/USER_ID
 
 ## 6. Restore User Tests
 
-### Restore deleted user
+#### Restore deleted user
 ```bash
 curl -X POST http://localhost:5000/api/users/USER_ID/restore
 ```
 
-### Restore active user
+#### Restore active user
 ```bash
 curl -X POST http://localhost:5000/api/users/USER_ID/restore
 ```
@@ -291,11 +325,9 @@ Example response:
 }
 ```
 
-
 ---
 
 ## 8. Queue Tests
-
 
 ```bash
 curl -X POST http://localhost:5000/api/queue/jobs \
@@ -308,6 +340,7 @@ curl -X POST http://localhost:5000/api/queue/jobs \
 curl http://localhost:5000/api/queue/jobs/<job_id>
 ```
 
+---
 
 ## 9. PDF Generation Tests
 
@@ -336,7 +369,6 @@ curl -X POST http://localhost:5000/api/pdf/generate/invoice \
     ]
 }' \
 --output invoice.pdf
-
 ```
 
 ### 10. File Upload API Tests
@@ -361,7 +393,4 @@ curl http://localhost:5000/api/files/<file_id>
 #### Delete a file
 ```bash
 curl -X DELETE http://localhost:5000/api/files/<file_id>
-
 ```
-
-

@@ -1,16 +1,17 @@
-from app.services.pdf_service import PDFService
 import pytest
+
+from io import BytesIO
+
 from app.services.redis_cache_service import RedisCacheService
 from app.services.user_service import UserService
+from app.services.file_service import FileService
+from app.services.pdf_service import PDFService
 from app import create_app
-
 
 from tests.mocks.mock_pdf import MockPDFService
 from tests.mocks.mock_db_service import MockDBService
 from tests.mocks.mock_queue import MockQueueService
 from tests.mocks.mock_redis import MockRedis
-
-
 
 
 @pytest.fixture
@@ -37,7 +38,12 @@ def mock_pdf():
     return MockPDFService()
 
 @pytest.fixture
-def app(mock_redis, mock_db, mock_queue, mock_pdf):
+def mock_file_service():
+    """Create a mock FileService instance"""
+    return FileService(MockDBService())
+
+@pytest.fixture
+def app(mock_redis, mock_db, mock_queue, mock_pdf, mock_file_service):
     """Create test Flask application with mocked services"""
     app = create_app()
     app.config.update({
@@ -55,6 +61,7 @@ def app(mock_redis, mock_db, mock_queue, mock_pdf):
     app.user_service = UserService(mock_db, cache_service)
     app.queue_service = mock_queue  
     app.pdf_service = mock_pdf
+    app.file_service = mock_file_service
 
     return app
 
@@ -62,6 +69,19 @@ def app(mock_redis, mock_db, mock_queue, mock_pdf):
 def client(app):
     """Create test client"""
     return app.test_client()
+
+@pytest.fixture
+def mock_csv_file():
+    """Provide a mock CSV file for testing uploads"""
+    file_content = b"name,email,age\nJohn Doe,john@example.com,30\nJane Smith,jane@example.com,25"
+    return BytesIO(file_content), "sample.csv"
+
+@pytest.fixture
+def headers_multipart():
+    """Headers for file upload requests"""
+    return {
+        'Content-Type': 'multipart/form-data',
+    }
 
 @pytest.fixture
 def mock_user_data():

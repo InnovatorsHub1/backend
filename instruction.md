@@ -39,6 +39,23 @@ To build and run the API using Docker, follow these steps:
    ```
 5. The API should now be accessible at `http://localhost:5000`. Use the above `curl` commands to test the endpoints.
 
+
+## rebuild your Docker containers:
+
+# Stop containers
+```
+docker-compose down
+```
+
+# Remove old images
+```
+docker system prune -f
+```
+
+# Rebuild and start
+```
+docker-compose up --build
+```
 ---
 
 
@@ -322,5 +339,29 @@ curl -X POST http://localhost:5000/api/pdf/generate/invoice \
 
 ```
 
+### 10. File Upload API Tests
+
+#### Upload a file
+```bash
+curl -X POST http://localhost:5000/api/files/upload \
+  -F "file=@sample.csv" \
+  -H "Content-Type: multipart/form-data"
+```
+
+#### Get all files
+```bash
+curl http://localhost:5000/api/files/
+```
+
+#### Get specific file metadata
+```bash
+curl http://localhost:5000/api/files/<file_id>
+```
+
+#### Delete a file
+```bash
+curl -X DELETE http://localhost:5000/api/files/<file_id>
+
+```
 
 

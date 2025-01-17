@@ -1,7 +1,9 @@
 import pytest
 import time
-from datetime import datetime
 import json
+
+from datetime import datetime
+
 from app.errors.exceptions import APIError
 
 class TestQueueService:

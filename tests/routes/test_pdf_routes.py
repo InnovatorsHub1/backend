@@ -1,5 +1,6 @@
 import pytest
 import json
+
 from app.errors.exceptions import APIError
 
 class TestPDFRoutes:

@@ -1,4 +1,5 @@
 import pytest
+
 from app.errors.exceptions import APIError
 
 

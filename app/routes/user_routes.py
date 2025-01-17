@@ -1,6 +1,9 @@
-from flask import Blueprint, jsonify, request, current_app
-from app.errors.exceptions import APIError
 import logging
+
+from flask import Blueprint, jsonify, request, current_app
+
+from app.errors.exceptions import APIError
+
 
 logger = logging.getLogger(__name__)
 user_bp = Blueprint("users", __name__, url_prefix="/api/users")

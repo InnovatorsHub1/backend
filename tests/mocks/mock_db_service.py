@@ -11,17 +11,10 @@ class MockDBService:
 
     def find_one(self, query: Dict, projection: Dict = None) -> Optional[Dict]:
         """Find one document in mock DB"""
-        # Handle ObjectId conversion
         if '_id' in query and isinstance(query['_id'], ObjectId):
             query['_id'] = str(query['_id'])
-
-        # Handle simple exact matches
         for doc in self.data.values():
-            matches = all(
-                key in doc and doc[key] == value
-                for key, value in query.items()
-            )
-            if matches:
+            if all(doc.get(key) == value for key, value in query.items()):
                 return doc.copy()
         return None
 
@@ -53,7 +46,7 @@ class MockDBService:
         document['_id'] = _id
         document.setdefault('created_at', datetime.now(timezone.utc))
         document.setdefault('updated_at', datetime.now(timezone.utc))
-        self.data[_id] = document.copy()
+        self.data[_id] = document
         return _id
 
     def update_one(self, filter: Dict, update: Dict, upsert: bool = False) -> Any:
@@ -91,3 +84,11 @@ class MockDBService:
     def count_documents(self, filter: Dict) -> int:
         """Count documents in mock DB"""
         return len(self.find(filter))
+    
+    def delete_one(self, query):
+        """Mock deleting a document from the database"""
+        document_id = query.get("_id")
+        if str(document_id) in self.data:
+            del self.data[str(document_id)]
+            return type("MockResult", (), {"deleted_count": 1})()
+        return type("MockResult", (), {"deleted_count": 0})()

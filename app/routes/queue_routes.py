@@ -1,7 +1,10 @@
+import logging
+
 from flask import Blueprint, jsonify, request, current_app
+
 from app.errors.exceptions import APIError
 from app.tasks.task_processor import process_data
-import logging
+
 
 logger = logging.getLogger(__name__)
 queue_bp = Blueprint("queue", __name__, url_prefix="/api/queue")

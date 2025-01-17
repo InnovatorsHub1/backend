@@ -1,10 +1,11 @@
+import logging
+
 from typing import List, Dict, Any, Protocol
 from datetime import datetime
-import logging
-from app.utils.general_utils import validate_email
 from bson import ObjectId
 from bson.errors import InvalidId
 
+from app.utils.general_utils import validate_email
 from app.models.user import User
 from app.errors.exceptions import APIError
 

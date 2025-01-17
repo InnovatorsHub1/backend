@@ -1,7 +1,10 @@
-from flask import Blueprint, send_file, request, current_app
-from app.errors.exceptions import APIError
 import logging
+
 from io import BytesIO
+from flask import Blueprint, send_file, request, current_app
+
+from app.errors.exceptions import APIError
+
 
 logger = logging.getLogger(__name__)
 pdf_bp = Blueprint('pdf', __name__, url_prefix='/api/pdf')

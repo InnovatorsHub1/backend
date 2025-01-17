@@ -1,9 +1,10 @@
+import logging
+
 from typing import Dict, List, Any, Optional
 from flask_pymongo import PyMongo
 from pymongo.collection import Collection
 from pymongo.results import InsertOneResult, UpdateResult, DeleteResult
 from bson import ObjectId
-import logging
 from datetime import datetime
 
 logger = logging.getLogger(__name__)

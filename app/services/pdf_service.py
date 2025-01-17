@@ -1,9 +1,11 @@
 import logging
+import os
+import tempfile
+
 from weasyprint import HTML
 from jinja2 import Environment, FileSystemLoader
-import os
 from pathlib import Path
-import tempfile
+
 
 logger = logging.getLogger(__name__)
 

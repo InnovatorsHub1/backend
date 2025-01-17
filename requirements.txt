@@ -1,4 +1,4 @@
-Flask==3.1.0
+Flask==3.1.0  # Required for using flask.json.JSONEncoder
 flask-pymongo==2.3.0
 flask-cors==4.0.0
 python-dotenv==0.19.0
@@ -15,13 +15,21 @@ pytest==7.4.0
 pytest-cov==4.1.0
 python-json-logger==2.0.7
 redis==5.0.1
-psutil==5.9.8 
+psutil==5.9.8
 
 # PDF Generation
 WeasyPrint==52.5
 
 # Queue Systems
 celery==5.3.6
-flower==2.0.1  # Celery monitoring
+flower==2.0.1  
 rq==1.15.1
 rq-dashboard==0.6.1
+
+# Data Processing
+pandas==2.0.3
+numpy==1.24.3
+openpyxl==3.1.2
+xlrd==2.0.1
+python-dateutil==2.8.2
+pytz==2023.3

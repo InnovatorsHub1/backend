@@ -1,6 +1,7 @@
 import pytest
-from bson import ObjectId
 import json
+
+from bson import ObjectId
 from datetime import datetime
 
 class TestCreateUser:

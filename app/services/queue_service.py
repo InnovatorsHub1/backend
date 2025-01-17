@@ -1,7 +1,9 @@
 import redis
+import logging
+
 from rq import Queue
 from typing import Any, Optional
-import logging
+
 
 logger = logging.getLogger(__name__)
 

@@ -1,17 +1,19 @@
-# Use the official Python 3.12 image as a base
-FROM python:3.12-slim
-
-# Set the working directory
+# Build stage
+FROM node:20-alpine as builder
 WORKDIR /app
-
-# Copy the current directory contents into the container
+COPY package*.json ./
+RUN npm install
 COPY . .
+RUN npm run build
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Expose the port that the Flask app runs on
-EXPOSE 5000
-
-# Command to run the application
-CMD ["python", "app.py"]
+# Production stage
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/build ./build
+COPY .env ./
+EXPOSE 3000
+RUN adduser -D appuser
+USER appuser
+CMD ["node", "build/src/index.js"]

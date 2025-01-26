@@ -1,11 +1,11 @@
-version: '3.9'
-
+version: '3.8'
 services:
-  web:
-    build: .
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
+      - "3000:3000"
+    env_file: .env
     environment:
-      - FLASK_ENV=development
+      - NODE_ENV=development

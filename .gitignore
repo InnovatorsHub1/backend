@@ -1,43 +1,22 @@
-# Python-specific ignores
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-.env
-venv/
-virtualenv/
-ENV/
-env/
-*.egg-info/
-*.egg
-
-# Flask-specific ignores
-instance/
-*.sqlite3
-
 # Logs
+logs
 *.log
-*.out
-*.err
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# Docker-specific ignores
-*.pid
-*.tar
-Dockerfile~
-docker-compose.override.yml
-
-# IDE/Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*.iml
-
-# System files
+# Node specific
+node_modules/
 .DS_Store
-Thumbs.db
 
-# Byte-compiled or optimized files
-*.pyc
-*.pyo
+# Environment files
+.env
+
+# Ignore build output directories
+build/
+build/Release
+
+# Dependency directories
+jspm_packages/

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
       args:
@@ -12,7 +12,24 @@ services:
       - .:/app  
       - /app/node_modules  
     env_file:
-      - .env  # Uses an environment file
+      - .env  # Loads environment variables from the .env file
     environment:
-      - NODE_ENV=development  
-    command: npm run dev 
+      NODE_ENV: development
+      MONGO_URI: mongodb://admin:password@mongodb:27017/test?authSource=admin
+    command: npm run dev
+    depends_on:
+      - mongodb  # Ensures MongoDB service is started before `app`
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

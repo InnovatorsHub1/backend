@@ -4,8 +4,15 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
+      args:
+        NODE_ENV: development  
     ports:
-      - "3000:3000"
-    env_file: .env
+      - "3000:3000" 
+    volumes:
+      - .:/app  
+      - /app/node_modules  
+    env_file:
+      - .env  # Uses an environment file
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=development  
+    command: npm run dev 

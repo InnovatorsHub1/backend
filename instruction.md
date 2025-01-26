@@ -65,15 +65,26 @@ curl http://localhost:3000/api/health \
 }
 ```
 
-## Running Tests
+
+
+
+## Running Tests 
+
+## with doker
 
 ```bash
+
+docker-compose up -d
 # All tests
+docker-compose exec app npm run test:integration
+
+```
+## in local
+```bash
+
 npm run test:integration
 
 ```
-
-
 
 ### Port in Use
 

@@ -3,45 +3,69 @@ import { ApiError } from '../core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 
 interface ValidationRules {
- headers?: string[];
- query?: string[];
- body?: string[];
+  headers?: string[];
+  query?: string[];
+  body?: string[];
 }
 
+const AUTH_HEADERS = ['x-api-key']; // Add any other auth headers here
+
 export const createValidator = (rules: ValidationRules = {}) => {
- return (req: Request, _res: Response, next: NextFunction): void => {
-   const errors: string[] = [];
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    const validationErrors: string[] = [];
+    const authErrors: string[] = [];
 
-   if (rules.headers) {
-     rules.headers.forEach(header => {
-       if (!req.headers[header.toLowerCase()]) {
-         errors.push(`Missing required header: ${header}`);
-       }
-     });
-   }
+    // Check headers
+    if (rules.headers) {
+      rules.headers.forEach(header => {
+        if (!req.headers[header.toLowerCase()]) {
+          // Separate auth errors from other validation errors
+          if (AUTH_HEADERS.includes(header.toLowerCase())) {
+            authErrors.push(`Missing required authentication header: ${header}`);
+          } else {
+            validationErrors.push(`Missing required header: ${header}`);
+          }
+        }
+      });
+    }
 
-   if (rules.query) {
-     rules.query.forEach(param => {
-       if (!req.query[param]) {
-         errors.push(`Missing required query param: ${param}`);
-       }
-     });
-   }
+    // Check query parameters
+    if (rules.query) {
+      rules.query.forEach(param => {
+        if (!req.query[param]) {
+          validationErrors.push(`Missing required query param: ${param}`);
+        }
+      });
+    }
 
-   if (rules.body) {
-     rules.body.forEach(field => {
-       if (!req.body[field]) {
-         errors.push(`Missing required body field: ${field}`);
-       }
-     });
-   }
+    // Check body fields
+    if (rules.body) {
+      rules.body.forEach(field => {
+        if (!req.body[field]) {
+          validationErrors.push(`Missing required body field: ${field}`);
+        }
+      });
+    }
 
-   if (errors.length > 0) {
-     throw new ApiError(errors.join(', '), StatusCodes.BAD_REQUEST, 'Validation');
-   }
+    // Handle errors
+    if (authErrors.length > 0) {
+      throw new ApiError(
+        authErrors.join(', '), 
+        StatusCodes.UNAUTHORIZED, 
+        'Authentication'
+      );
+    }
 
-   next();
- };
+    if (validationErrors.length > 0) {
+      throw new ApiError(
+        validationErrors.join(', '), 
+        StatusCodes.BAD_REQUEST, 
+        'Validation'
+      );
+    }
+
+    next();
+  };
 };
 
 export const validateRequest = createValidator();

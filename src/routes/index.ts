@@ -1,16 +1,19 @@
+import { injectable, inject } from 'inversify';
 import { Application } from 'express';
-import { HealthRoutes } from './health.routes'; 
+import { HealthRoutes } from './health.routes';
 import { config } from '../config';
+import { TYPES } from '../core/di/types';
 
+@injectable()
 export class Routes {
-  private healthRoutes: HealthRoutes; 
+    constructor(
+        @inject('Application') private readonly app: Application,
+        @inject(TYPES.HealthRoutes) private readonly healthRoutes: HealthRoutes
+    ) {}
 
-  constructor(private app: Application) {
-    this.healthRoutes = new HealthRoutes(); 
-    this.initializeRoutes();
-  }
-
-  private initializeRoutes(): void {
-    this.app.use(`${config.baseUrl}/health`, this.healthRoutes.router);
-  }
+    public initializeRoutes(): void {
+        // Add a console.log to debug
+        console.log('Initializing routes with base URL:', config.baseUrl);
+        this.app.use(`${config.baseUrl}/health`, this.healthRoutes.router);
+    }
 }

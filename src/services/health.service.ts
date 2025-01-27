@@ -1,4 +1,5 @@
 import { WinstonLogger } from '../core/logger/winston.logger';
+import { injectable } from 'inversify';
 
 export interface IHealthCheck {
   status: string;
@@ -12,6 +13,8 @@ export interface IHealthCheck {
   };
  }
  
+
+ @injectable()
  export class HealthService {
   private logger = new WinstonLogger('HealthService');
  

@@ -23,8 +23,20 @@ const config: Config.InitialOptions = {
   coverageReporters: ['text-summary', 'lcov'],
   moduleNameMapper: {
     '^@gateway/(.*)$': '<rootDir>/src/$1',
-    // Add any other path mappings here if necessary
-  }
+  },
+  // Add these new settings
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.json',
+      compiler: 'typescript',
+      diagnostics: {
+        ignoreCodes: [151001]
+      }
+    }
+  },
+  setupFiles: ['reflect-metadata'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  rootDir: '.'
 };
 
 export default config;

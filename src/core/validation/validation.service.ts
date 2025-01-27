@@ -1,5 +1,7 @@
 import { injectable } from 'inversify';
+
 import { WinstonLogger } from '../logger/winston.logger';
+
 import {
   IValidationService,
   ValidationSchema,
@@ -7,16 +9,23 @@ import {
   ValidationRule,
   ValidatorFn,
   ValidationError,
+  AsyncValidatorFn,
 } from './validation.types';
 import { StandardValidators } from './validators';
 
+/**
+ * Service for validating data against defined schemas
+ * @implements {IValidationService}
+ */
 @injectable()
 export class ValidationService implements IValidationService {
   private validators: Record<string, ValidatorFn>;
+  private asyncValidators: Record<string, AsyncValidatorFn>;
   private logger: WinstonLogger;
 
   constructor() {
     this.validators = { ...StandardValidators };
+    this.asyncValidators = {};
     this.logger = new WinstonLogger('ValidationService');
   }
 
@@ -24,6 +33,12 @@ export class ValidationService implements IValidationService {
     this.validators[name] = validator;
   }
 
+  /**
+   * Validates data against a schema
+   * @param data - The data to validate
+   * @param schema - The validation schema
+   * @returns ValidationResult containing validation status and errors
+   */
   public validate<T>(data: T, schema: ValidationSchema): ValidationResult {
     const errors: ValidationError[] = [];
     
@@ -84,4 +99,35 @@ export class ValidationService implements IValidationService {
       errors,
     };
   }
+  public async validateAsync<T>(data: T, schema: ValidationSchema): Promise<ValidationResult> {
+    const errors: ValidationError[] = [];
+    
+    if (schema.asyncRules) {
+      for (const rule of schema.asyncRules) {
+        const validator = this.asyncValidators[rule.name];
+        if (!validator) {
+          this.logger.warn(`Async validator ${rule.name} not found`);
+          continue;
+        }
+        
+        const isValid = await validator(data, rule.params);
+        if (!isValid) {
+          errors.push({
+            field: '',
+            message: rule.message || `Async validation failed for rule: ${rule.name}`,
+          });
+        }
+      }
+    }
+  
+    // Run regular validation
+    const syncResult = this.validate(data, schema);
+    errors.push(...syncResult.errors);
+  
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+  
 }

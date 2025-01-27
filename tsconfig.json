@@ -20,6 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
     "pretty": true,
+    "types": ["reflect-metadata", "node", "jest"],
     "resolveJsonModule": true,
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "plugins": [

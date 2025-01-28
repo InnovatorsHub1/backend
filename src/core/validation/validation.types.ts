@@ -36,4 +36,4 @@ export interface ValidationError {
 }
 
 export type ValidatorFn = (value: unknown, ...params: unknown[]) => boolean;
-export type AsyncValidatorFn = (value: unknown, params?: unknown) => Promise<boolean>;
+export type AsyncValidatorFn = (value: unknown, ...params: unknown[]) => Promise<boolean>;

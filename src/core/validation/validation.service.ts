@@ -23,14 +23,18 @@ export class ValidationService implements IValidationService {
   private asyncValidators: Record<string, AsyncValidatorFn>;
   private logger: WinstonLogger;
 
-  constructor() {
+  constructor(logger?: WinstonLogger) {
     this.validators = { ...StandardValidators };
     this.asyncValidators = {};
-    this.logger = new WinstonLogger('ValidationService');
+    this.logger = logger || new WinstonLogger('ValidationService');
   }
 
   public addRule(name: string, validator: ValidatorFn): void {
     this.validators[name] = validator;
+  }
+
+  public addAsyncRule(name: string, validator: AsyncValidatorFn): void {
+    this.asyncValidators[name] = validator;
   }
 
   /**

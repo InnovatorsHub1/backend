@@ -1,11 +1,25 @@
 import { ValidationService } from '@gateway/core/validation/validation.service';
-import { ValidationSchema } from '@gateway/core/validation/validation.types';
+import { ValidationSchema, AsyncValidatorFn } from '@gateway/core/validation/validation.types';
+import { WinstonLogger } from '@gateway/core/logger/winston.logger';
+
+jest.mock('@gateway/core/logger/winston.logger', () => {
+  return {
+    WinstonLogger: jest.fn().mockImplementation(() => ({
+      warn: jest.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    })),
+  };
+});
 
 describe('ValidationService', () => {
   let validationService: ValidationService;
+  let mockLogger: jest.Mocked<WinstonLogger>;
 
   beforeEach(() => {
-    validationService = new ValidationService();
+    mockLogger = new WinstonLogger('ValidationService') as jest.Mocked<WinstonLogger>;
+    validationService = new ValidationService(mockLogger);
   });
 
   describe('Basic Validation', () => {
@@ -29,6 +43,7 @@ describe('ValidationService', () => {
   });
 
   describe('Complex Validation', () => {
+    // This test remains unchanged as it doesn't use 'any'
     it('should validate nested objects', () => {
       const schema: ValidationSchema = {
         type: 'object',
@@ -56,6 +71,7 @@ describe('ValidationService', () => {
   });
 
   describe('Custom Rules', () => {
+    // This test remains unchanged as it doesn't use 'any'
     it('should allow adding and using custom validation rules', () => {
       const customRule = (value: unknown) => typeof value === 'string' && value.startsWith('custom');
       validationService.addRule('customPrefix', customRule);
@@ -67,6 +83,113 @@ describe('ValidationService', () => {
 
       const result = validationService.validate('custom-value', schema);
       expect(result.isValid).toBe(true);
+    });
+  });
+
+  describe('Async Validation', () => {
+    it('should pass async validation when rule succeeds', async () => {
+      const mockAsyncValidator: AsyncValidatorFn = async (value: unknown, ...params: unknown[]) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(true);
+          }, 100);
+        });
+      };
+      
+      validationService.addAsyncRule('mockAsync', mockAsyncValidator);
+
+      const schema: ValidationSchema = {
+        type: 'string',
+        rules: [{ name: 'required' }],
+        asyncRules: [{ name: 'mockAsync' }],
+      };
+
+      const result = await validationService.validateAsync('test-value', schema);
+
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should fail async validation when rule fails', async () => {
+      const mockAsyncValidator: AsyncValidatorFn = async (value: unknown) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(false);
+          }, 100);
+        });
+      };
+      
+      validationService.addAsyncRule('mockAsync', mockAsyncValidator);
+
+      const schema: ValidationSchema = {
+        type: 'string',
+        rules: [{ name: 'required' }],
+        asyncRules: [{
+          name: 'mockAsync',
+          message: 'Async validation failed',
+        }],
+      };
+
+      const result = await validationService.validateAsync('test-value', schema);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].message).toBe('Async validation failed');
+    });
+
+    it('should handle multiple async rules', async () => {
+      const successValidator: AsyncValidatorFn = async () => Promise.resolve(true);
+      const failureValidator: AsyncValidatorFn = async () => Promise.resolve(false);
+      
+      validationService.addAsyncRule('asyncSuccess', successValidator);
+      validationService.addAsyncRule('asyncFail', failureValidator);
+
+      const schema: ValidationSchema = {
+        type: 'string',
+        asyncRules: [
+          { name: 'asyncSuccess' },
+          { name: 'asyncFail', message: 'Second async validation failed' },
+        ],
+      };
+
+      const result = await validationService.validateAsync('test-value', schema);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].message).toBe('Second async validation failed');
+    });
+
+    it('should combine sync and async validation results', async () => {
+      const failingAsyncValidator: AsyncValidatorFn = async () => Promise.resolve(false);
+      validationService.addAsyncRule('asyncFail', failingAsyncValidator);
+
+      const schema: ValidationSchema = {
+        type: 'number', // This will cause a sync validation failure
+        rules: [{ name: 'required' }],
+        asyncRules: [{
+          name: 'asyncFail',
+          message: 'Async validation failed',
+        }],
+      };
+
+      const result = await validationService.validateAsync('invalid-type', schema);
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toHaveLength(2);
+      expect(result.errors[0].message).toBe('Async validation failed');
+      expect(result.errors[1].message).toContain('Invalid type');
+    });
+
+    it('should log warning and continue when async validator is not found', async () => {
+      const schema: ValidationSchema = {
+        type: 'string',
+        asyncRules: [{ name: 'nonexistentValidator' }],
+      };
+
+      const result = await validationService.validateAsync('test-value', schema);
+
+      expect(result.isValid).toBe(true);
+      expect(mockLogger.warn).toHaveBeenCalledWith('Async validator nonexistentValidator not found');
     });
   });
 });

@@ -1,5 +1,5 @@
-import { ValidationService } from '../validation.service';
-import { ValidationSchema } from '../validation.types';
+import { ValidationService } from '@gateway/core/validation/validation.service';
+import { ValidationSchema } from '@gateway/core/validation/validation.types';
 
 describe('ValidationService', () => {
   let validationService: ValidationService;

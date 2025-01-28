@@ -8,6 +8,10 @@ import { Routes } from '../../routes';
 import { App } from '../../app';
 import { Application } from 'express';
 import express from 'express';
+import { PDFService } from '../../services/pdf/pdf.service';
+import { TemplateService } from '../../services/pdf/template.service';
+import { PDFController } from '../../controllers/pdf.controller';
+import { PDFRoutes } from '../../routes/pdf.routes';
 
 const container = new Container({ defaultScope: "Singleton" });
 
@@ -21,5 +25,9 @@ container.bind<HealthController>(TYPES.HealthController).to(HealthController);
 container.bind<HealthRoutes>(TYPES.HealthRoutes).to(HealthRoutes);
 container.bind<Routes>(TYPES.Routes).to(Routes);
 container.bind<App>(TYPES.App).to(App);
+container.bind<PDFService>(TYPES.PDFService).to(PDFService);
+container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
+container.bind<PDFController>(TYPES.PDFController).to(PDFController);
+container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
 
 export { container };

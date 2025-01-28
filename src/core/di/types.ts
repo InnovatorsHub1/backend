@@ -3,5 +3,9 @@ export const TYPES = {
     HealthService: Symbol.for('HealthService'),
     HealthController: Symbol.for('HealthController'),
     HealthRoutes: Symbol.for('HealthRoutes'),
-    Routes: Symbol.for('Routes')
+    Routes: Symbol.for('Routes'),
+    PDFService: Symbol.for('PDFService'),
+    TemplateService: Symbol.for('TemplateService'),
+    PDFController: Symbol.for('PDFController'),
+    PDFRoutes: Symbol.for('PDFRoutes')
 };

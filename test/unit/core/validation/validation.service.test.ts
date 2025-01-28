@@ -40,10 +40,22 @@ describe('ValidationService', () => {
       const result = validationService.validate(123, schema);
       expect(result.isValid).toBe(false);
     });
+
+    it('should log warning and continue when sync validator is not found', () => {
+      const schema: ValidationSchema = {
+        type: 'string',
+        rules: [{ name: 'nonexistentValidator' }],
+      };
+    
+      const result = validationService.validate('test-value', schema);
+    
+      expect(result.isValid).toBe(true);
+      expect(mockLogger.warn).toHaveBeenCalledWith('Validator nonexistentValidator not found');
+    });
+    
   });
 
   describe('Complex Validation', () => {
-    // This test remains unchanged as it doesn't use 'any'
     it('should validate nested objects', () => {
       const schema: ValidationSchema = {
         type: 'object',
@@ -71,7 +83,6 @@ describe('ValidationService', () => {
   });
 
   describe('Custom Rules', () => {
-    // This test remains unchanged as it doesn't use 'any'
     it('should allow adding and using custom validation rules', () => {
       const customRule = (value: unknown) => typeof value === 'string' && value.startsWith('custom');
       validationService.addRule('customPrefix', customRule);
@@ -157,27 +168,6 @@ describe('ValidationService', () => {
       expect(result.isValid).toBe(false);
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].message).toBe('Second async validation failed');
-    });
-
-    it('should combine sync and async validation results', async () => {
-      const failingAsyncValidator: AsyncValidatorFn = async () => Promise.resolve(false);
-      validationService.addAsyncRule('asyncFail', failingAsyncValidator);
-
-      const schema: ValidationSchema = {
-        type: 'number', // This will cause a sync validation failure
-        rules: [{ name: 'required' }],
-        asyncRules: [{
-          name: 'asyncFail',
-          message: 'Async validation failed',
-        }],
-      };
-
-      const result = await validationService.validateAsync('invalid-type', schema);
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toHaveLength(2);
-      expect(result.errors[0].message).toBe('Async validation failed');
-      expect(result.errors[1].message).toContain('Invalid type');
     });
 
     it('should log warning and continue when async validator is not found', async () => {

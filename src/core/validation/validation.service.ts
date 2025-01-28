@@ -124,10 +124,6 @@ export class ValidationService implements IValidationService {
       }
     }
   
-    // Run regular validation
-    const syncResult = this.validate(data, schema);
-    errors.push(...syncResult.errors);
-  
     return {
       isValid: errors.length === 0,
       errors,

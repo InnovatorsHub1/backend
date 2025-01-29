@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{invoice_number}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20mm;
+            color: #333;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-info h1 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        .invoice-details {
+            text-align: right;
+        }
+
+        .invoice-details h2 {
+            color: #7f8c8d;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+        }
+
+        .client-info {
+            margin: 40px 0;
+        }
+
+        .client-info h3 {
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+        }
+
+        .invoice-table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #eee;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .invoice-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .amount-column {
+            text-align: right;
+        }
+
+        .totals {
+            width: 100%;
+            max-width: 300px;
+            margin-left: auto;
+        }
+
+        .totals table {
+            width: 100%;
+        }
+
+        .totals td {
+            padding: 8px;
+        }
+
+        .totals .total-row {
+            font-weight: bold;
+            font-size: 18px;
+            border-top: 2px solid #eee;
+        }
+
+        .totals .amount-column {
+            text-align: right;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-info">
+            <h1>{{company_name}}</h1>
+            <p>
+                {{company_address}}<br>
+                {{company_city}}, {{company_country}}<br>
+                {{company_phone}}<br>
+                {{company_email}}
+            </p>
+        </div>
+        <div class="invoice-details">
+            <h2>INVOICE</h2>
+            <p>
+                Invoice #: {{invoice_number}}<br>
+                Date: {{invoice_date}}<br>
+                Due Date: {{due_date}}
+            </p>
+        </div>
+    </div>
+
+    <div class="client-info">
+        <h3>Bill To:</h3>
+        <p>
+            {{client_name}}<br>
+            {{client_address}}<br>
+            {{client_city}}, {{client_country}}<br>
+            {{client_phone}}<br>
+            {{client_email}}
+        </p>
+    </div>
+
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th class="amount-column">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each items}}
+            <tr>
+                <td>{{description}}</td>
+                <td>{{quantity}}</td>
+                <td>${{unit_price}}</td>
+                <td class="amount-column">${{amount}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td class="amount-column">${{subtotal}}</td>
+            </tr>
+            <tr>
+                <td>Tax ({{tax_rate}}%):</td>
+                <td class="amount-column">${{tax_amount}}</td>
+            </tr>
+            <tr class="total-row">
+                <td>Total:</td>
+                <td class="amount-column">${{total}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Payment is due within {{payment_terms}} days. Please include the invoice number on your check.</p>
+        <p>Thank you for your business!</p>
+        {{#if terms_and_conditions}}
+        <p>Terms and Conditions:<br>{{terms_and_conditions}}</p>
+        {{/if}}
+    </div>
+</body>
+</html>

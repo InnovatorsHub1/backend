@@ -4,11 +4,10 @@ const config: Config.InitialOptions = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   verbose: true,
-  coverageDirectory: 'coverage',
+  coverageDirectory: '/tmp/coverage',  
   collectCoverage: true,
   testPathIgnorePatterns: ['/node_modules/'],
   transform: {
-    // Update this section
     '^.+\\.ts?$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
       compiler: 'typescript',
@@ -18,7 +17,11 @@ const config: Config.InitialOptions = {
     }]
   },
   testMatch: ['<rootDir>/test/**/*.ts'],
-  collectCoverageFrom: ['src/**/*.ts', '!test/**/*.ts?(x)', '!**/node_modules/**'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!test/**/*.ts?(x)',
+    '!**/node_modules/**'
+  ],
   coverageThreshold: {
     global: {
       branches: 1,
@@ -27,7 +30,7 @@ const config: Config.InitialOptions = {
       statements: 1
     }
   },
-  coverageReporters: ['text-summary', 'lcov'],
+  coverageReporters: ['text', 'text-summary'], 
   moduleNameMapper: {
     '^@gateway/(.*)$': '<rootDir>/src/$1',
   },

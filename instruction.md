@@ -1,4 +1,3 @@
-```markdown
 # Project Documentation
 
 ## Docker Operations
@@ -11,6 +10,11 @@ docker-compose down
 
 # Remove all resources
 docker system prune -a --volumes -f
+
+or
+
+docker-compose down -v
+docker system prune -f
 
 # Rebuild
 docker-compose up --build
@@ -58,32 +62,74 @@ curl http://localhost:3000/api/health \
 
 ```json
 {
-  "status":"healthy",
-  "uptime":35.265359111,
-  "timestamp":"2025-01-26T06:40:45.587Z",
-  "version":"1.0.0",
+  "status": "healthy",
+  "uptime": 35.265359111,
+  "timestamp": "2025-01-26T06:40:45.587Z",
+  "version": "1.0.0"
 }
 ```
 
+### PDF Generation
 
+```bash
+curl -X POST \
+  'http://localhost:3000/api/pdf/generate' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "templateName": "invoice",
+    "data": {
+      "company_name": "Test Company",
+      "company_address": "123 Business Street",
+      "company_city": "Business City",
+      "company_country": "Country",
+      "company_phone": "+1 234 567 890",
+      "company_email": "contact@company.com",
 
+      "invoice_number": "INV-001",
+      "invoice_date": "2025-01-27",
+      "due_date": "2025-02-26",
+
+      "client_name": "Client Company Name",
+      "client_address": "456 Client Street",
+      "client_city": "Client City",
+      "client_country": "Country",
+      "client_phone": "+1 098 765 432",
+      "client_email": "client@clientcompany.com",
+
+      "items": [
+        {
+          "description": "Service 1",
+          "quantity": 2,
+          "unit_price": 100,
+          "amount": 200
+        }
+      ],
+
+      "subtotal": 200,
+      "tax_rate": 20,
+      "tax_amount": 40,
+      "total": 240,
+
+      "payment_terms": 30
+    }
+  }' \
+  --output invoice.pdf
+```
 
 ## Running Tests 
 
-## with doker
+### with Docker
 
 ```bash
-
 docker-compose up -d
 # All tests
 docker-compose exec app npm run test:integration
-
 ```
-## in local
+
+### in local
+
 ```bash
-
 npm run test:integration
-
 ```
 
 ### Port in Use
@@ -104,6 +150,5 @@ docker volume prune
 
 # Remove unused networks
 docker network prune
-```
 ```
 

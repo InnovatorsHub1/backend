@@ -7,5 +7,6 @@ export const TYPES = {
     PDFService: Symbol.for('PDFService'),
     TemplateService: Symbol.for('TemplateService'),
     PDFController: Symbol.for('PDFController'),
-    PDFRoutes: Symbol.for('PDFRoutes')
+    PDFRoutes: Symbol.for('PDFRoutes'),
+    ValidationService: Symbol.for('ValidationService'),
 };

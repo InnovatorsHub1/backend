@@ -46,16 +46,16 @@ export class HealthMonitor {
     private logger = new WinstonLogger('HealthService');
 
     //Cpu Usage
-    getCpuUsage(): number {
+    private getCpuUsage(): number {
         return os.loadavg()[0];
     }
     //Memory Usage
-    getMemoryUsage(): number {
+    private getMemoryUsage(): number {
         const memory = process.memoryUsage();
         return memory.heapUsed;
     }
     //Disk Usage
-    getDiskUsage(path: string): Promise<number> {
+    private getDiskUsage(path: string): Promise<number> {
         return new Promise(async (resolve, reject) => {
             const platform = getOS();
             if(platform === 'win32')
@@ -66,7 +66,7 @@ export class HealthMonitor {
                 throw new Error('Unsupported Operating System');
         })
     }
-    async getNetworkStats(): Promise<NetworkStats> {
+    private async getNetworkStats(): Promise<NetworkStats> {
         const interfaces = os.networkInterfaces();
         const activeConnections = Object.keys(interfaces).length;
         const uploadSpeed = 10; //Mock value
@@ -74,18 +74,35 @@ export class HealthMonitor {
         const latency = 10 //Mock value
         return { uploadSpeed, downloadSpeed, activeConnections, latency };
     }
+    private checkThreshold(metricName: string, value: number, threshold: number): void {
+        if (value >= threshold) {
+            this.logger.warn(`${metricName} exceeded threshold`, {
+                current: value,
+                threshold: threshold,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
     async checkSystem(): Promise<SystemMetrics> {
         this.logger.info('Performing System check');
         const cpuUsage = this.getCpuUsage();
         const memoryUsage = this.getMemoryUsage();
         const diskUsage = await this.getDiskUsage('/');
         const networkStats = await this.getNetworkStats();
-        return {
+
+        this.checkThreshold('CPU Usage', cpuUsage, HEALTH_CONFIG.alertThresholds.cpu);
+        this.checkThreshold('Memory Usage', memoryUsage, HEALTH_CONFIG.alertThresholds.memory);
+        this.checkThreshold('Disk Usage', diskUsage, HEALTH_CONFIG.alertThresholds.disk);
+        this.checkThreshold('Latency', networkStats.latency, HEALTH_CONFIG.alertThresholds.responseTime);
+
+        const metrics: SystemMetrics = {
             cpuUsage,
             memoryUsage,
             diskUsage,
             networkStats
-        }
+        };
+
+        return metrics;
     }
     async monitorDependecies(): Promise<DependencyStatus> {
         //checking db's connections:mongo,redis

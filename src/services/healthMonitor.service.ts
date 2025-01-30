@@ -6,6 +6,10 @@ import os from 'os';
 import { rejects } from 'assert';
 import { stdout } from 'process';
 import { exec } from 'child_process';
+import { mongoConnection } from '@gateway/utils/mongoConnection';
+import { HEALTH_CONFIG } from '../config/health_config' ;
+import { time } from 'console';
+
 
 function getOS(): string {
     return os.platform()
@@ -75,19 +79,52 @@ export class HealthMonitor {
         const cpuUsage = this.getCpuUsage();
         const memoryUsage = this.getMemoryUsage();
         const diskUsage = await this.getDiskUsage('/');
-        const networkStats = this.getNetworkStats();
+        const networkStats = await this.getNetworkStats();
         return {
             cpuUsage,
             memoryUsage,
             diskUsage,
             networkStats
         }
-
-
     }
-    async monitorDependecies(): Promise<> {
+    async monitorDependecies(): Promise<DependencyStatus> {
         //checking db's connections:mongo,redis
         //checking extranal API calls
+
+        const dependencies: DependencyStatus = {};
+        try {
+            const startTime = Date.now();
+            const client = mongoConnection.getClient();
+            await Promise.race([
+                client.db().command({ ping: 1 }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Ping timeout')), 
+                    HEALTH_CONFIG.dependencies.database.timeout)
+                )
+            ]);
+            
+            const endTime = Date.now();
+            const latencyMs = endTime - startTime;
+            dependencies.mongodb = {
+                status: 'healthy',
+                latencyMs : latencyMs,
+                lastChecked: new Date().toISOString()
+
+            }
+            this.logger.info('MongoDB health check passed');
+        }
+        catch(error){
+            const errorMsg = error instanceof Error ? error.message: 'Unknown error';
+            dependencies.mongodb = {
+                status: 'unhealthy',
+                latencyMs : 0,
+                lastChecked: new Date().toISOString()
+            }
+            this.logger.info('MongoDB health check failed',{
+                error: errorMsg
+            });
+        }
+        return dependencies;
     }
     async collectMetrics(): Promise<> {
 

@@ -1,5 +1,5 @@
-const HEALTH_CONFIG = {
-    checkInterval: 60, // seconds
+export const HEALTH_CONFIG = {
+    checkInterval: 60, 
     alertThresholds: {
       cpu: 80,
       memory: 85,

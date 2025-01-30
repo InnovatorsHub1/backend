@@ -2,10 +2,10 @@ import { WinstonLogger } from '@gateway/core/logger/winston.logger';
 import { MongoClient } from 'mongodb';
 
 export interface IMongoConnection {
-    connect(): Promise<void>;
-    disconnect(): Promise<void>;
-    isConnected(): boolean;
-    getClient(): MongoClient;
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  isConnected(): boolean;
+  getClient(): MongoClient;
 }
 
 class MongoConnection implements IMongoConnection {

@@ -18,9 +18,9 @@ export class JwtService {
     private readonly verifyOptions = { algorithms: ['RS256'] };
 
     /**
-     * Initializes the JwtService with database connection and JWT configuration.
+     * Initializes the JWT service
      * @param {IMongoConnection} db - MongoDB connection instance
-     * @throws {ApiError} When initialization fails or configuration is missing
+     * @throws {ApiError} When initialization fails
      */
     constructor(db: IMongoConnection = mongoConnection) {
         try {
@@ -111,15 +111,28 @@ export class JwtService {
     }
 
     /**
-     * Generates an access token with the provided payload.
-     * @param {AccessTokenPayload} payload - The data to include in the token
-     * @returns {string} A signed JWT access token
+     * Validates the token payload
+     * @private
+     * @param {AccessTokenPayload} payload - The payload to validate
+     * @throws {ApiError} When payload validation fails
+     */
+    private validatePayload(payload: AccessTokenPayload): void {
+        if (!payload?.sub || typeof payload.sub !== 'string') {
+            throw new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'Invalid payload');
+        }
+        if (!payload?.role || typeof payload.role !== 'string') {
+            throw new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'Invalid payload');
+        }
+    }
+
+    /**
+     * Generates a new JWT token
+     * @param {AccessTokenPayload} payload - The payload to include in the token
+     * @returns {string} The generated JWT token
      * @throws {ApiError} When token generation fails
-     * 
-     * @example
-     * const token = jwtService.generateToken({ sub: 'user123', role: 'user' });
      */
     public generateToken(payload: AccessTokenPayload): string {
+        this.validatePayload(payload);
         try {
             return sign(payload, this.privateKey, {
                 algorithm: 'RS256',
@@ -131,17 +144,10 @@ export class JwtService {
     }
 
     /**
-     * Generates a refresh token with the provided payload.
-     * @param {RefreshTokenPayload} payload - The data to include in the token
-     * @returns {string} A signed JWT refresh token
+     * Generates a new refresh token
+     * @param {RefreshTokenPayload} payload - The payload to include in the refresh token
+     * @returns {string} The generated refresh token
      * @throws {ApiError} When token generation fails
-     * 
-     * @example
-     * const token = jwtService.generateRefreshToken({ 
-     *   sub: 'user123', 
-     *   role: 'user',
-     *   jti: 'unique-id'
-     * });
      */
     public generateRefreshToken(payload: RefreshTokenPayload): string {
         try {
@@ -156,13 +162,10 @@ export class JwtService {
     }
 
     /**
-     * Verifies and decodes a JWT token.
+     * Verifies a JWT token
      * @param {string} token - The token to verify
      * @returns {JwtPayload} The decoded token payload
      * @throws {ApiError} When token is invalid or expired
-     * 
-     * @example
-     * const payload = jwtService.verifyToken('your.jwt.token');
      */
     public verifyToken(token: string): JwtPayload {
         try {

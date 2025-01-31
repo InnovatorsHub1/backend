@@ -311,5 +311,31 @@ describe('JwtService', () => {
                 .rejects.toThrow(new ApiError('Database error', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error'));
         });
     });
+
+    describe('validatePayload', () => {
+        it('should throw when subject is missing', () => {
+            const invalidPayload = { role: 'user' } as AccessTokenPayload;
+            expect(() => jwtService['validatePayload'](invalidPayload))
+                .toThrow(new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
+        });
+
+        it('should throw when role is missing', () => {
+            const invalidPayload = { sub: 'user123' } as AccessTokenPayload;
+            expect(() => jwtService['validatePayload'](invalidPayload))
+                .toThrow(new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
+        });
+
+        it('should throw when subject is not a string', () => {
+            const invalidPayload = { sub: 123, role: 'user' } as unknown as AccessTokenPayload;
+            expect(() => jwtService['validatePayload'](invalidPayload))
+                .toThrow(new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
+        });
+
+        it('should throw when role is not a string', () => {
+            const invalidPayload = { sub: 'user123', role: 123 } as unknown as AccessTokenPayload;
+            expect(() => jwtService['validatePayload'](invalidPayload))
+                .toThrow(new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
+        });
+    });
 });
 

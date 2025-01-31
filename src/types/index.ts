@@ -26,7 +26,7 @@ export interface IConfig {
   apiVersion: string;
   jwtPublicKeyPath: string | undefined;
   jwtPrivateKeyPath: string | undefined;
-  jwtAccessExpiration: string;
-  jwtRefreshExpiration: string;
+  jwtAccessExpiration: string | number;
+  jwtRefreshExpiration: string | number;
 }
 

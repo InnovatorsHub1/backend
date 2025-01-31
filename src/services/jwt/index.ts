@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { sign, verify, SignOptions, JwtPayload, VerifyOptions, TokenExpiredError } from 'jsonwebtoken';
+import { sign, verify, JwtPayload, TokenExpiredError, SignOptions, VerifyOptions, JsonWebTokenError } from 'jsonwebtoken';
 import { config } from '@gateway/config';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
@@ -10,70 +10,44 @@ import { IMongoConnection, mongoConnection } from '@gateway/utils/mongoConnectio
  * Service for managing JWT tokens, including creation, verification, and blacklist management.
  */
 export class JwtService {
-    private readonly publicKey: string;
-    private readonly privateKey: string;
+    private publicKey: string;
+    private privateKey: string;
+    private readonly db: IMongoConnection;
     private readonly accessExpiration: string | number;
     private readonly refreshExpiration: string | number;
-    private readonly db: IMongoConnection;
-    private readonly signRefreshTokenOptions: SignOptions;
-    private readonly signAccessTokenOptions: SignOptions;
-    private readonly verifyOptions: VerifyOptions;
+    private readonly verifyOptions = { algorithms: ['RS256'] };
 
     /**
-     * Initializes the JwtService by loading keys, setting up sign and verify options,
-     * and creating the TTL index for the blacklist.
-     * Throws an error if keys cannot be loaded.
+     * Initializes the JwtService with database connection and JWT configuration.
+     * @param {IMongoConnection} db - MongoDB connection instance
+     * @throws {ApiError} When initialization fails or configuration is missing
      */
-    constructor() {
+    constructor(db: IMongoConnection = mongoConnection) {
         try {
-            this.publicKey = fs.readFileSync(config.jwtPublicKeyPath!, 'utf8');
-            this.privateKey = fs.readFileSync(config.jwtPrivateKeyPath!, 'utf8');
+            if (!db) {
+                throw new Error('Database connection is required');
+            }
+
+            if (!config.jwtPublicKeyPath || !config.jwtPrivateKeyPath) {
+                throw new Error('JWT key paths are required');
+            }
+
+            if (!config.jwtAccessExpiration || !config.jwtRefreshExpiration) {
+                throw new Error('JWT expiration configuration is required');
+            }
+
+            this.publicKey = fs.readFileSync(config.jwtPublicKeyPath, 'utf8');
+            this.privateKey = fs.readFileSync(config.jwtPrivateKeyPath, 'utf8');
+            this.accessExpiration = config.jwtAccessExpiration;
+            this.refreshExpiration = config.jwtRefreshExpiration;
+            this.db = db;
+
+            this.initialize().catch(error => {
+                console.error('Failed to initialize TTL index:', error);
+            });
         } catch (error) {
-            this.errorException('Failed to load JWT keys', StatusCodes.INTERNAL_SERVER_ERROR);
-        }
-
-        this.accessExpiration = config.jwtAccessExpiration;
-        this.refreshExpiration = config.jwtRefreshExpiration;
-        this.db = mongoConnection;
-
-        this.signAccessTokenOptions = {
-            expiresIn: this.accessExpiration as number | `${number}d` | `${number}h` | `${number}m` | `${number}s`,
-            algorithm: 'RS256',
-        };
-
-        this.signRefreshTokenOptions = {
-            expiresIn: this.refreshExpiration as number | `${number}d` | `${number}h` | `${number}m` | `${number}s`,
-            algorithm: 'RS256',
-        };
-
-        this.verifyOptions = {
-            algorithms: ['RS256'],
-        };
-
-        // Initialize the TTL index for the JTI blacklist
-        this.initializeJtiTTLIndex();
-    }
-
-    /**
-     * Throws an ApiError with the given message and status code.
-     * @param message - The error message.
-     * @param statusCode - The HTTP status code.
-     */
-    private errorException(message: string, statusCode: StatusCodes): never {
-        throw new ApiError(message, statusCode, 'JWT Service Error');
-    }
-
-    /**
-     * Wraps asynchronous functions with centralized error handling.
-     * @param fn - The asynchronous function to execute.
-     * @returns The result of the asynchronous function.
-     * @throws ApiError with status 500 if an error occurs.
-     */
-    private async runWithErrorHandling<T>(fn: () => Promise<T>): Promise<T> {
-        try {
-            return await fn();
-        } catch (error: any) {
-            this.errorException(error.message || 'JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR);
+            console.error('JWT Service initialization error:', error);
+            throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
         }
     }
 
@@ -91,12 +65,11 @@ export class JwtService {
     private async initializeJtiTTLIndex() {
         await this.runWithErrorHandling(async () => {
             const collection = this.jtiCollection();
-            // Create TTL index if it doesn't exist
             await collection.createIndex(
                 { expiresAt: 1 },
                 { expireAfterSeconds: 0, background: true }
             );
-            console.log('TTL index on "expiresAt" field has been ensured.');
+            console.debug('TTL index on "expiresAt" field has been ensured.');
         });
     }
 
@@ -114,72 +87,126 @@ export class JwtService {
     }
 
     /**
+     * Wraps asynchronous functions with centralized error handling.
+     * @param fn - The asynchronous function to execute.
+     * @returns The result of the asynchronous function.
+     * @throws ApiError with status 500 if an error occurs.
+     */
+    private async runWithErrorHandling<T>(fn: () => Promise<T>): Promise<T> {
+        try {
+            return await fn();
+        } catch (error: any) {
+            throw new ApiError(error.message || 'JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
+        }
+    }
+
+    private mapJwtError(error: unknown): never {
+        if (error instanceof TokenExpiredError) {
+            throw new ApiError('Token expired', StatusCodes.UNAUTHORIZED, 'Token expired');
+        }
+        if (error instanceof JsonWebTokenError) {
+            throw new ApiError('Invalid token', StatusCodes.UNAUTHORIZED, 'Invalid token');
+        }
+        throw new ApiError('JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
+    }
+
+    /**
      * Generates an access token with the provided payload.
-     * @param payload - The payload to include in the token.
-     * @returns A signed JWT access token.
+     * @param {AccessTokenPayload} payload - The data to include in the token
+     * @returns {string} A signed JWT access token
+     * @throws {ApiError} When token generation fails
+     * 
+     * @example
+     * const token = jwtService.generateToken({ sub: 'user123', role: 'user' });
      */
     public generateToken(payload: AccessTokenPayload): string {
-        return sign(payload, this.privateKey, this.signAccessTokenOptions);
+        try {
+            return sign(payload, this.privateKey, {
+                algorithm: 'RS256',
+                expiresIn: this.accessExpiration
+            } as SignOptions);
+        } catch (error) {
+            this.mapJwtError(error);
+        }
     }
 
     /**
      * Generates a refresh token with the provided payload.
-     * @param payload - The payload to include in the token.
-     * @returns A signed JWT refresh token.
+     * @param {RefreshTokenPayload} payload - The data to include in the token
+     * @returns {string} A signed JWT refresh token
+     * @throws {ApiError} When token generation fails
+     * 
+     * @example
+     * const token = jwtService.generateRefreshToken({ 
+     *   sub: 'user123', 
+     *   role: 'user',
+     *   jti: 'unique-id'
+     * });
      */
     public generateRefreshToken(payload: RefreshTokenPayload): string {
-        return sign(payload, this.privateKey, this.signRefreshTokenOptions);
-    }
-
-    /**
-     * Verifies the validity of an access token.
-     * @param token - The JWT access token to verify.
-     * @returns The decoded JWT payload if valid.
-     * @throws ApiError with status 401 if the token is invalid.
-     */
-    public verifyToken(token: string): JwtPayload {
         try {
-            return verify(token, this.publicKey, this.verifyOptions) as JwtPayload;
+            const options = {
+                algorithm: 'RS256' as const,
+                ...(payload.exp ? {} : { expiresIn: this.refreshExpiration })
+            };
+            return sign(payload, this.privateKey, options as SignOptions);
         } catch (error) {
-            this.errorException('Invalid token', StatusCodes.UNAUTHORIZED);
+            this.mapJwtError(error);
         }
     }
 
     /**
-     * Verifies the validity of a refresh token and checks if it is blacklisted.
-     * @param token - The JWT refresh token to verify.
-     * @returns The decoded JWT payload if valid and not blacklisted.
-     * @throws ApiError with status 401 if the token is invalid, expired, or blacklisted.
+     * Verifies and decodes a JWT token.
+     * @param {string} token - The token to verify
+     * @returns {JwtPayload} The decoded token payload
+     * @throws {ApiError} When token is invalid or expired
+     * 
+     * @example
+     * const payload = jwtService.verifyToken('your.jwt.token');
+     */
+    public verifyToken(token: string): JwtPayload {
+        try {
+            return verify(token, this.publicKey, this.verifyOptions as VerifyOptions) as JwtPayload;
+        } catch (error) {
+            this.mapJwtError(error);
+        }
+    }
+
+    /**
+     * Verifies a refresh token and checks if it's blacklisted.
+     * @param {string} token - The refresh token to verify
+     * @returns {Promise<JwtPayload>} The decoded token payload
+     * @throws {ApiError} When token is invalid, expired, or blacklisted
+     * 
+     * @example
+     * const payload = await jwtService.verifyRefreshToken('your.refresh.token');
      */
     public async verifyRefreshToken(token: string): Promise<JwtPayload> {
         let decoded: JwtPayload | null = null;
         try {
-            decoded = verify(token, this.publicKey, this.verifyOptions) as JwtPayload;
+            decoded = verify(token, this.publicKey, this.verifyOptions as VerifyOptions) as JwtPayload;
             if (!decoded || typeof decoded === 'string') {
-                this.errorException('Invalid refresh token', StatusCodes.UNAUTHORIZED);
+                throw new ApiError('Invalid refresh token', StatusCodes.UNAUTHORIZED, 'Invalid refresh token');
             }
 
             if (!decoded.jti) {
-                this.errorException('Invalid refresh token: missing jti', StatusCodes.UNAUTHORIZED);
+                throw new ApiError('Invalid refresh token: missing jti', StatusCodes.UNAUTHORIZED, 'Invalid refresh token');
             }
-        } catch (error: any) {
-            if (error instanceof TokenExpiredError) {
-                this.errorException('Refresh token expired', StatusCodes.UNAUTHORIZED);
-            }
-            if (error instanceof ApiError) throw error;
-            this.errorException('Invalid refresh token', StatusCodes.UNAUTHORIZED);
+        } catch (error) {
+            this.mapJwtError(error);
         }
 
-        const blacklisted = await this.isJtiInBlackList(decoded!.jti);
+        const blacklisted = await this.isJtiInBlackList(decoded.jti);
         if (blacklisted) {
-            this.errorException('Refresh token revoked', StatusCodes.UNAUTHORIZED);
+            throw new ApiError('Refresh token revoked', StatusCodes.UNAUTHORIZED, 'Refresh token revoked');
         }
-        return decoded!;
+        return decoded;
     }
 
     /**
-     * Retrieves all JTIs from the blacklist.
-     * @returns An array of blacklisted JTIs.
+     * Retrieves all blacklisted JTIs.
+     * @returns {Promise<JtiDocument[]>} Array of blacklisted JTI documents
+     * @throws {ApiError} When database operation fails
      */
     public async getJtis(): Promise<JtiDocument[]> {
         return this.runWithErrorHandling(async () => {
@@ -188,12 +215,22 @@ export class JwtService {
     }
 
     /**
-     * Adds a JTI to the blacklist.
-     * @param jti - The JTI to blacklist.
-     * @param expiresAt - The expiration date of the token associated with the JTI.
-     * @returns The JTI that was added to the blacklist.
+     * Adds a token's JTI to the blacklist.
+     * @param {string} jti - The JWT ID to blacklist
+     * @param {Date} expiresAt - When the token naturally expires
+     * @returns {Promise<string>} The blacklisted JTI
+     * @throws {ApiError} When JTI is invalid or operation fails
+     * 
+     * @example
+     * const jti = await jwtService.saveJtiInBlackList('token-id', new Date('2024-12-31'));
      */
     public async saveJtiInBlackList(jti: string, expiresAt: Date): Promise<string> {
+        if (!jti?.trim()) {
+            throw new ApiError('Invalid JTI', StatusCodes.BAD_REQUEST, 'Invalid JTI');
+        }
+        if (!(expiresAt instanceof Date) || expiresAt < new Date()) {
+            throw new ApiError('Invalid expiration date', StatusCodes.BAD_REQUEST, 'Invalid expiration date');
+        }
         return this.runWithErrorHandling(async () => {
             await this.jtiCollection().insertOne({
                 _id: jti,
@@ -207,19 +244,29 @@ export class JwtService {
 
     /**
      * Removes a JTI from the blacklist.
-     * @param jti - The JTI to remove from the blacklist.
-     * @returns The JTI that was removed.
-     * @throws ApiError with status 404 if the JTI is not found in the blacklist.
+     * @param {string} jti - The JTI to remove
+     * @returns {Promise<string>} The removed JTI
+     * @throws {ApiError} When JTI is not found or operation fails
+     * 
+     * @example
+     * const jti = await jwtService.deleteJtiFromBlackList('token-id');
      */
     public async deleteJtiFromBlackList(jti: string): Promise<string> {
         return this.runWithErrorHandling(async () => {
             const result = await this.jtiCollection().deleteOne({ _id: jti });
             if (result.deletedCount === 0) {
-                this.errorException('Jti not found', StatusCodes.NOT_FOUND);
+                throw new ApiError('Jti not found', StatusCodes.NOT_FOUND, 'Jti not found');
             }
             return jti;
         });
     }
-}
 
-export const jwtService = new JwtService();
+    /**
+     * Initializes the service by setting up required database indexes.
+     * @returns {Promise<void>}
+     * @throws {ApiError} When initialization fails
+     */
+    public async initialize(): Promise<void> {
+        await this.initializeJtiTTLIndex();
+    }
+}

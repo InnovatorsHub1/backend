@@ -80,9 +80,6 @@ importers:
       multer:
         specifier: ^1.4.5-lts.1
         version: 1.4.5-lts.1
-      node-cron:
-        specifier: ^3.0.3
-        version: 3.0.3
       nodemon:
         specifier: ^3.0.2
         version: 3.1.9
@@ -120,6 +117,9 @@ importers:
         specifier: ^0.17.4
         version: 0.17.4
     devDependencies:
+      '@jest/types':
+        specifier: ^29.6.3
+        version: 29.6.3
       '@types/compression':
         specifier: ^1.7.5
         version: 1.7.5
@@ -2691,10 +2691,6 @@ packages:
     resolution: {integrity: sha512-o2zOYiCpzRqSzPj0Zt/dQ/DqZeYoaQ7TUonc/xUPjCGl9WeHpNbxgVvOquXYAaJzI0M9BXV3HTzG0p8IUAbBTQ==}
     engines: {node: '>= 10.13'}
 
-  node-cron@3.0.3:
-    resolution: {integrity: sha512-dOal67//nohNgYWb+nWmg5dkFdIwDm8EpeGYMekPMrngV3637lqnX0lbUcCtgibHTz6SEz7DAIjKvKDFYCnO1A==}
-    engines: {node: '>=6.0.0'}
-
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
@@ -3569,10 +3565,6 @@ packages:
 
   uuid@11.0.5:
     resolution: {integrity: sha512-508e6IcKLrhxKdBbcA2b4KQZlLVp2+J5UwQ6F7Drckkc5N9ZJwFa4TgWtsww9UG8fGHbm6gbV19TdM5pQ4GaIA==}
-    hasBin: true
-
-  uuid@8.3.2:
-    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -6827,10 +6819,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  node-cron@3.0.3:
-    dependencies:
-      uuid: 8.3.2
-
   node-int64@0.4.0: {}
 
   node-releases@2.0.19: {}
@@ -7854,8 +7842,6 @@ snapshots:
   utils-merge@1.0.1: {}
 
   uuid@11.0.5: {}
-
-  uuid@8.3.2: {}
 
   v8-compile-cache-lib@3.0.1: {}
 

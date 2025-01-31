@@ -6,12 +6,11 @@
   "scripts": {
     "dev": "nodemon -r tsconfig-paths/register src/index.ts | pino-pretty -c",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
-    "lint:check": "eslint 'src/**/*.ts'",
-    "lint:fix": "eslint 'src/**/*.ts' --fix",
-    "prettier:check": "prettier --check 'src/**/*.{ts,json}'",
-    "prettier:fix": "prettier --write 'src/**/*.{ts,json}'",
-    "test:unit": "jest --coverage=true -w=1 --forceExit --detectOpenHandles --watchAll=false --testMatch='<rootDir>/test/unit/**/*.ts'",
-    "test:integration": "jest --config jest.config.ts"
+    "lint:check": "eslint 'src/*/.ts'",
+    "lint:fix": "eslint 'src/*/.ts' --fix",
+    "prettier:check": "prettier --check 'src/*/.{ts,json}'",
+    "prettier:fix": "prettier --write 'src/*/.{ts,json}'",
+    "test:unit": "jest --config jest.config.ts"
   },
   "keywords": [],
   "author": "",

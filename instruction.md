@@ -34,6 +34,9 @@ BASE_URL=/api
 CORS_ORIGINS=*
 COOKIE_SECRET=your-secret-key
 API_VERSION=v1
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=password
+MONGO_URI=mongodb://admin:password@localhost:27017/test?authSource=admin
 ```
 
 ### Install dependencies:
@@ -123,13 +126,13 @@ curl -X POST \
 ```bash
 docker-compose up -d
 # All tests
-docker-compose exec app npm run test:integration
+docker-compose exec app npm run test:unit
 ```
 
 ### in local
 
 ```bash
-npm run test:integration
+npm run test:unit
 ```
 
 ### Port in Use

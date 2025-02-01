@@ -24,5 +24,18 @@ export interface IErrorResponse {
     corsOrigins: string[];
     cookieSecret: string;
     apiVersion: string;
+    
+    // Redis configuration
+    redisUrl: string;
+    queueName: string;
+    maxRetries: number;
+    retryDelay: number;
+    jobTimeout: number;
+
+    // Worker configuration
+    concurrency: number;
+    prefetchCount: number;
+    pollInterval: number;
+    maxTasksPerChild: number;
   }
 

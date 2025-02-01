@@ -13,7 +13,20 @@ const getConfig = (): IConfig => ({
   logLevel: process.env.LOG_LEVEL || 'info',
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['*'],
   cookieSecret: process.env.COOKIE_SECRET || 'default-secret',
-  apiVersion: process.env.API_VERSION || 'v1'
+  apiVersion: process.env.API_VERSION || 'v1',
+
+  // Redis configuration
+  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  queueName: process.env.QUEUE_NAME || 'default',
+  maxRetries: Number(process.env.MAX_RETRIES) || 3,
+  retryDelay: Number(process.env.RETRY_DELAY) || 300000, // 5 minutes
+  jobTimeout: Number(process.env.JOB_TIMEOUT) || 3600000, // 1 hour
+
+  // Worker configuration
+  concurrency: Number(process.env.CONCURRENCY) || 4,
+  prefetchCount: Number(process.env.PREFETCH_COUNT) || 10,
+  pollInterval: Number(process.env.POLL_INTERVAL) || 1000, // 1 second
+  maxTasksPerChild: Number(process.env.MAX_TASKS_PER_CHILD) || 1000
 });
 
 const validateConfig = (config: IConfig): void => {

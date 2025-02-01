@@ -12,6 +12,9 @@ import { PDFService } from '../../services/pdf/pdf.service';
 import { TemplateService } from '../../services/pdf/template.service';
 import { PDFController } from '../../controllers/pdf.controller';
 import { PDFRoutes } from '../../routes/pdf.routes';
+import { QueueService } from '../../services/queue.service';
+import { QueueController } from '../../controllers/queue.controller';
+import { QueueRoutes } from '../../routes/queue.routes';
 
 import { TYPES } from './types';
 
@@ -32,5 +35,9 @@ container.bind<PDFService>(TYPES.PDFService).to(PDFService);
 container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
+container.bind<QueueService>(TYPES.QueueService).to(QueueService);
+container.bind<QueueController>(TYPES.QueueController).to(QueueController);
+container.bind<QueueRoutes>(TYPES.QueueRoutes).to(QueueRoutes); 
+
 
 export { container };

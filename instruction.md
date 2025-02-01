@@ -22,8 +22,19 @@ docker-compose up --build
 
 ## Environment Setup
 
-### Configure .env:
+### Generate RSA Keys:
+```bash
+# Create keys directory
+mkdir -p keys
 
+# Generate private key
+openssl genpkey -algorithm RSA -out keys/private.pem -pkeyopt rsa_keygen_bits:2048
+
+# Generate public key
+openssl rsa -pubout -in keys/private.pem -out keys/public.pem
+```
+
+### Configure .env:
 ```env
 PORT=3000
 APP_NAME=api-gateway
@@ -34,6 +45,12 @@ BASE_URL=/api
 CORS_ORIGINS=*
 COOKIE_SECRET=your-secret-key
 API_VERSION=v1
+
+# JWT Configuration
+JWT_PRIVATE_KEY_PATH=./keys/private.pem
+JWT_PUBLIC_KEY_PATH=./keys/public.pem
+JWT_ACCESS_EXPIRATION=1h
+JWT_REFRESH_EXPIRATION=7d
 ```
 
 ### Install dependencies:

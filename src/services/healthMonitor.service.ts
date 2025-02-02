@@ -1,13 +1,11 @@
 import { WinstonLogger } from '../core/logger/winston.logger';
-import { 
-    SystemMetrics, DependencyStatus, NetworkStats, IHealthService 
-} from '../types/healthMonitor.types';
+import { SystemMetrics, DependencyStatus, NetworkStats, IHealthService } from '../types/healthMonitor.types';
 import { injectable } from 'inversify';
 import os from 'os';
 import { exec } from 'child_process';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
 import { HEALTH_CONFIG } from '../config/health_config';
-import { MetricsHistoryService } from '@gateway/types/metricHistory.type';
+import { MetricsHistoryService } from './metricHistory.service';
 import { promisify } from 'util';
 
 interface NetworkInterfaceStats {
@@ -17,7 +15,7 @@ interface NetworkInterfaceStats {
 }
 
 @injectable()
-export class HealthMonitor {
+export class HealthMonitorService {
     private lastStats: Map<string, NetworkInterfaceStats> = new Map();
     private execAsync = promisify(exec);
     

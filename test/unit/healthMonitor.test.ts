@@ -1,4 +1,4 @@
-import { HealthMonitor } from '@gateway/services/healthMonitor.service';
+import { HealthMonitorService } from '@gateway/services/healthMonitor.service';
 import { WinstonLogger } from '@gateway/core/logger/winston.logger';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
 import { HEALTH_CONFIG } from '@gateway/config/health_config';
@@ -12,7 +12,7 @@ jest.mock('os');
 jest.mock('child_process');
 
 describe('HealthMonitor', () => {
-    let healthMonitor: HealthMonitor;
+    let healthMonitor: HealthMonitorService;
     let mockLogger: jest.Mocked<WinstonLogger>;
     let mockMetricsHistory: jest.Mocked<MetricsHistoryService>;
     const mockExec = jest.spyOn(child_process, 'exec');
@@ -23,7 +23,7 @@ describe('HealthMonitor', () => {
         mockMetricsHistory = {
             saveMetrics: jest.fn().mockResolvedValue(undefined)
         } as unknown as jest.Mocked<MetricsHistoryService>;
-        healthMonitor = new HealthMonitor(mockMetricsHistory, mockLogger);
+        healthMonitor = new HealthMonitorService(mockMetricsHistory, mockLogger);
     });
 
     describe('getDiskUsage', () => {

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { inject, injectable } from "inversify";
-import { HealthMonitor } from "@gateway/services/healthMonitor.service";
+import { HealthMonitorService } from "@gateway/services/healthMonitor.service";
 import { TYPES } from "../core/di/types";
 import { WinstonLogger } from "@gateway/core/logger/winston.logger";
 
@@ -9,7 +9,7 @@ export class HealthMonitorController {
     private logger = new WinstonLogger("HealthMonitorController");
 
     constructor(
-        @inject(TYPES.HealthMonitorService) private readonly healthMonitorService: HealthMonitor
+        @inject(TYPES.HealthMonitorService) private readonly healthMonitorService: HealthMonitorService
     ) {}
 
     public getHealthStatus = async (req: Request, res: Response): Promise<void> => {

@@ -12,6 +12,9 @@ import { PDFService } from '../../services/pdf/pdf.service';
 import { TemplateService } from '../../services/pdf/template.service';
 import { PDFController } from '../../controllers/pdf.controller';
 import { PDFRoutes } from '../../routes/pdf.routes';
+import { HealthMonitorService } from '../../services/healthMonitor.service';
+import { HealthMonitorController } from '../../controllers/healthMonitor.controller';
+import { MetricsHistoryService } from '../../services/metricHistory.service';
 
 import { TYPES } from './types';
 
@@ -32,5 +35,8 @@ container.bind<PDFService>(TYPES.PDFService).to(PDFService);
 container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
+container.bind<HealthMonitorService>(TYPES.HealthMonitorService).to(HealthMonitorService);
+container.bind<HealthMonitorController>(TYPES.HealthMonitorController).to(HealthMonitorController);
+container.bind<MetricsHistoryService>(TYPES.MetricsHistoryService).to(MetricsHistoryService);
 
 export { container };

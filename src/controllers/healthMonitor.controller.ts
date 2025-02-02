@@ -17,7 +17,7 @@ export class HealthMonitorController {
             this.logger.info('Health check requested');
             const [systemMetrics, dependencies] = await Promise.all([
                 this.healthMonitorService.checkSystem(),
-                this.healthMonitorService.monitorDependecies()
+                this.healthMonitorService.monitorDependencies()
             ]);
             const isSystemHealthy =
                 systemMetrics.cpuUsage < 90 &&

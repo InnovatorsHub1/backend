@@ -16,10 +16,8 @@ describe('HealthMonitor', () => {
     const mockExec = jest.mocked(child_process.exec);
     
     beforeEach(() => {
-        // Clear all mocks before each test
-        jest.clearAllMocks();
         
-        // Initialize the health monitor
+        jest.clearAllMocks();
         healthMonitor = new HealthMonitor();
         mockLogger = new WinstonLogger('HealthService') as jest.Mocked<WinstonLogger>;
     });
@@ -28,7 +26,6 @@ describe('HealthMonitor', () => {
         it('should get disk usage for Unix systems', async () => {
             (os.platform as jest.Mock).mockReturnValue('linux');
             mockExec.mockImplementation((command: string, options: any, callback?: any) => {
-                // Handle both 2-arg and 3-arg cases
                 const actualCallback = callback || options;
                 actualCallback(null, '45%\n', '');
                 return {} as child_process.ChildProcess;
@@ -41,20 +38,18 @@ describe('HealthMonitor', () => {
         it('should get disk usage for Windows systems', async () => {
             (os.platform as jest.Mock).mockReturnValue('win32');
             mockExec.mockImplementation((command: string, options: any, callback?: any) => {
-                // Handle both 2-arg and 3-arg cases
                 const actualCallback = callback || options;
                 actualCallback(null, 'FreeSpace  Size\n 5000     10000', '');
                 return {} as child_process.ChildProcess;
             });
 
             const metrics = await healthMonitor.checkSystem();
-            expect(metrics.diskUsage).toBe(50); // (10000-5000)/10000 * 100
+            expect(metrics.diskUsage).toBe(50);
         });
 
         it('should handle disk usage errors', async () => {
             (os.platform as jest.Mock).mockReturnValue('linux');
             mockExec.mockImplementation((command: string, options: any, callback?: any) => {
-                // Handle both 2-arg and 3-arg cases
                 const actualCallback = callback || options;
                 actualCallback(new Error('Command failed'), '', '');
                 return {} as child_process.ChildProcess;
@@ -66,13 +61,11 @@ describe('HealthMonitor', () => {
 
     describe('checkSystem', () => {
         beforeEach(() => {
-            // Mock OS methods
             (os.loadavg as jest.Mock).mockReturnValue([1.5, 1.0, 0.5]);
             (os.networkInterfaces as jest.Mock).mockReturnValue({
                 eth0: [{ address: '127.0.0.1' }]
             });
             
-            // Mock process.memoryUsage
             const mockMemoryUsage = jest.spyOn(process, 'memoryUsage');
             mockMemoryUsage.mockReturnValue({
                 heapUsed: 100,
@@ -82,9 +75,8 @@ describe('HealthMonitor', () => {
                 rss: 300
             });
 
-            // Mock disk usage
+           
             mockExec.mockImplementation((command: string, options: any, callback?: any) => {
-                // Handle both 2-arg and 3-arg cases
                 const actualCallback = callback || options;
                 actualCallback(null, '20%\n', '');
                 return {} as child_process.ChildProcess;
@@ -118,8 +110,7 @@ describe('HealthMonitor', () => {
             
             (mongoConnection.getClient as jest.Mock).mockReturnValue(mockClient);
             
-            const result = await healthMonitor.monitorDependecies();
-
+            const result = await healthMonitor.monitorDependencies();
             expect(result.mongodb).toEqual({
                 status: 'healthy',
                 latencyMs: expect.any(Number),

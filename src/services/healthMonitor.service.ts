@@ -1,90 +1,159 @@
-import { resolve } from 'path';
 import { WinstonLogger } from '../core/logger/winston.logger';
-import { HealthStatus, SystemMetrics, DependencyStatus, ApplicationMetrics, NetworkStats, IHealthService } from '../types/healthMonitor.types';
+import { 
+    SystemMetrics, DependencyStatus, NetworkStats, IHealthService 
+} from '../types/healthMonitor.types';
 import { injectable } from 'inversify';
 import os from 'os';
-import { rejects } from 'assert';
-import { stdout } from 'process';
 import { exec } from 'child_process';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
-import { HEALTH_CONFIG } from '../config/health_config' ;
-import { time } from 'console';
+import { HEALTH_CONFIG } from '../config/health_config';
+import { MetricsHistoryService } from '@gateway/types/metricHistory.type';
+import { promisify } from 'util';
 
-
-function getOS(): string {
-    return os.platform()
-}
-//MacOS/LinuxOS
-function getDiskUsageUnix(path: string): Promise<number> {
-    return new Promise((resolve, rejects) => {
-        exec(`df -h ${path} | tail -n 1 | awk '{print $5}' `, (err, stdout) => {
-            if (err) return rejects(err);
-            const usage = parseInt(stdout.replace('%', '').trim());
-            resolve(usage);
-        });
-    });
-}
-//Windows 
-function getDiskUsageWin(path: string): Promise<number> {
-    return new Promise((resolve, rejects) => {
-        exec(`wmic logicaldisk where "DeviceID='${path}'" get FreeSpace, Size`, (err, stdout) => {
-            if (err) return rejects(err);
-            const lines = stdout.split('\n');
-            const sizeLine = lines[1].trim().split(/\s+/);
-            const totalSpace = parseInt(sizeLine[1], 10);
-            const freeSpace = parseInt(sizeLine[0], 10);
-            const usedSpace = totalSpace - freeSpace;
-            const usagePercentage = (usedSpace / totalSpace) * 100;
-
-            resolve(usagePercentage);
-        })
-    })
+interface NetworkInterfaceStats {
+    bytesReceived: number;
+    bytesSent: number;
+    timestamp: number;
 }
 
 @injectable()
 export class HealthMonitor {
-    private logger = new WinstonLogger('HealthService');
+    private lastStats: Map<string, NetworkInterfaceStats> = new Map();
+    private execAsync = promisify(exec);
+    
+    constructor(
+        private metricsHistory: MetricsHistoryService,
+        private logger: WinstonLogger
+    ) {}
 
-    //Cpu Usage
+    // Get CPU usage
     private getCpuUsage(): number {
         return os.loadavg()[0];
     }
-    //Memory Usage
+
+    // Get Memory usage
     private getMemoryUsage(): number {
-        const memory = process.memoryUsage();
-        return memory.heapUsed;
+        return process.memoryUsage().heapUsed;
     }
-    //Disk Usage
-    private getDiskUsage(path: string): Promise<number> {
-        return new Promise(async (resolve, reject) => {
-            const platform = getOS();
-            if(platform === 'win32')
-                return await getDiskUsageWin(path);
-            else if (platform === 'linux' || platform === 'darwin')
-                return await getDiskUsageUnix(path);
-            else
-                throw new Error('Unsupported Operating System');
-        })
+
+    // Get Disk Usage based on OS
+    private async getDiskUsage(path: string): Promise<number> {
+        const platform = os.platform();
+        return platform === 'win32' ? this.getDiskUsageWin(path) : this.getDiskUsageUnix(path);
     }
-    private async getNetworkStats(): Promise<NetworkStats> {
-        const interfaces = os.networkInterfaces();
-        const activeConnections = Object.keys(interfaces).length;
-        const uploadSpeed = 10; //Mock value
-        const downloadSpeed = 10; //Mock value
-        const latency = 10 //Mock value
-        return { uploadSpeed, downloadSpeed, activeConnections, latency };
-    }
-    private checkThreshold(metricName: string, value: number, threshold: number): void {
-        if (value >= threshold) {
-            this.logger.warn(`${metricName} exceeded threshold`, {
-                current: value,
-                threshold: threshold,
-                timestamp: new Date().toISOString()
+
+    private getDiskUsageUnix(path: string): Promise<number> {
+        return new Promise((resolve, reject) => {
+            exec(`df -h ${path} | tail -n 1 | awk '{print $5}'`, (err, stdout) => {
+                if (err) return reject(err);
+                resolve(parseInt(stdout.replace('%', '').trim()));
             });
+        });
+    }
+
+    private getDiskUsageWin(path: string): Promise<number> {
+        return new Promise((resolve, reject) => {
+            exec(`wmic logicaldisk where "DeviceID='${path}'" get FreeSpace, Size`, (err, stdout) => {
+                if (err) return reject(err);
+                const lines = stdout.trim().split('\n');
+                const [freeSpace, totalSpace] = lines[1]?.trim().split(/\s+/).map(Number) || [];
+                resolve(((totalSpace - freeSpace) / totalSpace) * 100);
+            });
+        });
+    }
+    private async getWindowsNetworkStats(interfaceName: string): Promise<NetworkInterfaceStats> {
+        try {
+            const { stdout } = await this.execAsync(
+                `powershell "Get-NetAdapterStatistics -Name '${interfaceName}' | Select-Object ReceivedBytes,SentBytes"`,
+            );
+            const [receivedLine, sentLine] = stdout.trim().split('\n').slice(2);
+            return {
+                bytesReceived: parseInt(receivedLine.trim()),
+                bytesSent: parseInt(sentLine.trim()),
+                timestamp: Date.now()
+            };
+        } catch {
+            return { bytesReceived: 0, bytesSent: 0, timestamp: Date.now() };
         }
     }
-    async checkSystem(): Promise<SystemMetrics> {
-        this.logger.info('Performing System check');
+
+    private async getLinuxNetworkStats(interfaceName: string): Promise<NetworkInterfaceStats> {
+        try {
+            const { stdout } = await this.execAsync(`cat /proc/net/dev | grep ${interfaceName}`);
+            const stats = stdout.trim().split(/\s+/);
+            return {
+                bytesReceived: parseInt(stats[1]),
+                bytesSent: parseInt(stats[9]),
+                timestamp: Date.now()
+            };
+        } catch {
+            return { bytesReceived: 0, bytesSent: 0, timestamp: Date.now() };
+        }
+    }
+    // Get Network Statistics
+    public async getNetworkStats(): Promise<NetworkStats> {
+        const interfaces = os.networkInterfaces();
+        let totalUploadSpeed = 0;
+        let totalDownloadSpeed = 0;
+
+        for (const [interfaceName, interfaceData] of Object.entries(interfaces)) {
+            if (!interfaceData?.some(addr => addr.family === 'IPv4')) continue;
+
+            const currentStats = os.platform() === 'win32'
+                ? await this.getWindowsNetworkStats(interfaceName)
+                : await this.getLinuxNetworkStats(interfaceName);
+
+            const lastStats = this.lastStats.get(interfaceName);
+            if (lastStats) {
+                const timeDiff = (currentStats.timestamp - lastStats.timestamp) / 1000;
+                if (timeDiff > 0) {
+                    totalUploadSpeed += (currentStats.bytesSent - lastStats.bytesSent) / timeDiff;
+                    totalDownloadSpeed += (currentStats.bytesReceived - lastStats.bytesReceived) / timeDiff;
+                }
+            }
+            this.lastStats.set(interfaceName, currentStats);
+        }
+
+        const [latency, activeConnections] = await Promise.all([
+            this.measureLatency(),
+            this.getActiveConnections()
+        ]);
+
+        return { uploadSpeed: totalUploadSpeed, downloadSpeed: totalDownloadSpeed, activeConnections, latency };
+    }
+
+    private async measureLatency(): Promise<number> {
+        const host = 'www.google.com';
+        const command = os.platform() === 'win32' ? `ping -n 1 ${host}` : `ping -c 1 ${host}`;
+        try {
+            const { stdout } = await this.execAsync(command);
+            const match = stdout.match(/time=(\d+(\.\d+)?) ms/);
+            return match ? parseFloat(match[1]) : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    private async getActiveConnections(): Promise<number> {
+        const command = os.platform() === 'win32' 
+            ? 'netstat -n | find "ESTABLISHED" /c' 
+            : 'netstat -n | grep ESTABLISHED | wc -l';
+        try {
+            const { stdout } = await this.execAsync(command);
+            return parseInt(stdout.trim());
+        } catch {
+            return 0;
+        }
+    }
+
+    private checkThreshold(metricName: string, value: number, threshold: number): void {
+        if (value >= threshold) {
+            this.logger.warn(`${metricName} exceeded threshold`, { current: value, threshold, timestamp: new Date().toISOString() });
+        }
+    }
+
+    public async checkSystem(): Promise<SystemMetrics> {
+        this.logger.info('Performing system check');
         const cpuUsage = this.getCpuUsage();
         const memoryUsage = this.getMemoryUsage();
         const diskUsage = await this.getDiskUsage('/');
@@ -95,55 +164,27 @@ export class HealthMonitor {
         this.checkThreshold('Disk Usage', diskUsage, HEALTH_CONFIG.alertThresholds.disk);
         this.checkThreshold('Latency', networkStats.latency, HEALTH_CONFIG.alertThresholds.responseTime);
 
-        const metrics: SystemMetrics = {
-            cpuUsage,
-            memoryUsage,
-            diskUsage,
-            networkStats
-        };
-
+        const metrics: SystemMetrics = { cpuUsage, memoryUsage, diskUsage, networkStats };
+        await this.metricsHistory.saveMetrics({
+            timestamp: new Date(),
+            systemMetrics: metrics,
+            dependencyStatus: await this.monitorDependencies(),
+            alerts: []
+        });
         return metrics;
     }
-    async monitorDependecies(): Promise<DependencyStatus> {
-        //checking db's connections:mongo,redis
-        //checking extranal API calls
 
+    private async monitorDependencies(): Promise<DependencyStatus> {
         const dependencies: DependencyStatus = {};
         try {
             const startTime = Date.now();
-            const client = mongoConnection.getClient();
-            await Promise.race([
-                client.db().command({ ping: 1 }),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Ping timeout')), 
-                    HEALTH_CONFIG.dependencies.database.timeout)
-                )
-            ]);
-            
-            const endTime = Date.now();
-            const latencyMs = endTime - startTime;
-            dependencies.mongodb = {
-                status: 'healthy',
-                latencyMs : latencyMs,
-                lastChecked: new Date().toISOString()
-
-            }
+            await mongoConnection.getClient().db().command({ ping: 1 });
+            dependencies.mongodb = { status: 'healthy', latencyMs: Date.now() - startTime, lastChecked: new Date().toISOString() };
             this.logger.info('MongoDB health check passed');
-        }
-        catch(error){
-            const errorMsg = error instanceof Error ? error.message: 'Unknown error';
-            dependencies.mongodb = {
-                status: 'unhealthy',
-                latencyMs : 0,
-                lastChecked: new Date().toISOString()
-            }
-            this.logger.info('MongoDB health check failed',{
-                error: errorMsg
-            });
+        } catch (error) {
+            dependencies.mongodb = { status: 'unhealthy', latencyMs: 0, lastChecked: new Date().toISOString() };
+            this.logger.error('MongoDB health check failed', {  error });
         }
         return dependencies;
-    }
-    async collectMetrics(): Promise<> {
-
     }
 }

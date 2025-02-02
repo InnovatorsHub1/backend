@@ -9,4 +9,5 @@ export const TYPES = {
     PDFController: Symbol.for('PDFController'),
     PDFRoutes: Symbol.for('PDFRoutes'),
     ValidationService: Symbol.for('ValidationService'),
+    RetryService: Symbol.for('RetryService'),
 };

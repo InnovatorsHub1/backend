@@ -174,7 +174,7 @@ export class HealthMonitor {
         return metrics;
     }
 
-    private async monitorDependencies(): Promise<DependencyStatus> {
+    public async monitorDependencies(): Promise<DependencyStatus> {
         const dependencies: DependencyStatus = {};
         try {
             const startTime = Date.now();

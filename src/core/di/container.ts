@@ -17,6 +17,8 @@ import { QueueController } from '../../controllers/queue.controller';
 import { QueueRoutes } from '../../routes/queue.routes';
 
 import { TYPES } from './types';
+import { RetryService } from '@gateway/services/retry.service';
+
 
 const container = new Container({ defaultScope: 'Singleton' });
 
@@ -38,6 +40,6 @@ container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
 container.bind<QueueService>(TYPES.QueueService).to(QueueService);
 container.bind<QueueController>(TYPES.QueueController).to(QueueController);
 container.bind<QueueRoutes>(TYPES.QueueRoutes).to(QueueRoutes); 
-
+container.bind<RetryService>(TYPES.RetryService).to(RetryService)
 
 export { container };

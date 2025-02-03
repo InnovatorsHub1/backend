@@ -1,4 +1,4 @@
-import Bull, { Job, QueueOptions } from 'bull';
+import { Queue, Worker, QueueEvents, Job, QueueOptions } from 'bullmq';
 import { injectable } from 'inversify';
 import { config } from '../config';
 
@@ -14,130 +14,164 @@ export enum JobState {
 
 @injectable()
 export class QueueService {
-  private queue: Bull.Queue;
+  private queue: Queue;
+  private worker: Worker;
+  private queueEvents: QueueEvents;
 
   constructor() {
-    const redisUrl = new URL(config.redisUrl);
     const redisOptions: QueueOptions = {
-      redis: {
-        host: redisUrl.hostname,
-        port: Number(redisUrl.port) || 6379,
-        password: redisUrl.password || undefined
+      connection: {
+        host: new URL(config.redisUrl).hostname,
+        port: Number(new URL(config.redisUrl).port) || 6379,
+        password: new URL(config.redisUrl).password || undefined
       }
     };
 
-    this.queue = new Bull(config.queueName, redisOptions);
-    this.processJobs();
-    this.registerEventListeners();
+    // ✅ Initialize Queue, Worker & QueueEvents
+    this.queue = new Queue(config.queueName, redisOptions);
+    this.queueEvents = new QueueEvents(config.queueName, redisOptions);
+    this.setupEventListeners();
+    this.worker = this.createWorker();
+    
+  }
+
+  public getQueueEvents() {
+    return this.queueEvents; // ✅ Exposes queue events
   }
 
   /**
-   * Add a job to the queue.
+   * ✅ Add a job to the queue.
    * @param data - The job data.
    * @param delay - Optional delay in milliseconds.
    * @param priority - Job priority (lower number = higher priority).
    */
   public async enqueue(data: any, delay = 0, priority = 1): Promise<Job> {
-    return await this.queue.add(data, {
+    return await this.queue.add('job', data, {
       attempts: config.maxRetries,
-      backoff: config.retryDelay,
-      timeout: config.jobTimeout,
+      backoff: { type: 'fixed', delay: config.retryDelay }, 
       delay,
-      priority // Lower value means higher priority
+      priority
     });
   }
 
   /**
-   * Get the status of a job.
+   * ✅ Get the status of a job.
    * @param jobId - The ID of the job.
    * @returns JobState or null if not found.
    */
   public async getJobStatus(jobId: string): Promise<JobState | null> {
     const job = await this.queue.getJob(jobId);
     if (!job) return null;
-    if (job.failedReason) return JobState.FAILED;
-    if (job.finishedOn) return JobState.COMPLETED;
-    if (job.processedOn) return JobState.PROCESSING;
-    return JobState.QUEUED;
+    const state = await job.getState();
+    
+    switch (state) {
+      case 'completed': return JobState.COMPLETED;
+      case 'failed': return JobState.FAILED;
+      case 'waiting': return JobState.QUEUED;
+      case 'active': return JobState.PROCESSING;
+      case 'delayed': return JobState.SCHEDULED;
+      default: return null;
+    }
   }
 
   /**
-   * Cancel a queued job.
+   * ✅ Cancel a queued job.
    * @param jobId - The job ID.
    * @returns True if canceled, otherwise false.
    */
   public async cancelJob(jobId: string): Promise<boolean> {
     const job = await this.queue.getJob(jobId);
     if (!job) return false;
-    await job.remove();
-    return true;
+    try {
+      await job.remove();
+      return true;
+    } catch (error) {
+      console.error(`❌ Could not remove job ${jobId}:`, error);
+      return false;
+    }
   }
 
   /**
-   * Retry a failed job.
+   * ✅ Retry a failed job.
    * @param jobId - The job ID.
    * @returns True if retried, otherwise false.
    */
   public async retryJob(jobId: string): Promise<boolean> {
     const job = await this.queue.getJob(jobId);
-    if (!job || job.finishedOn) return false;
-    await job.retry();
-    return true;
+    if (!job) return false;
+    try {
+      await job.retry();
+      return true;
+    } catch (error) {
+      console.error(`❌ Could not retry job ${jobId}:`, error);
+      return false;
+    }
   }
 
   /**
-   * Clear all jobs from the queue.
+   * ✅ Clear all jobs from the queue.
    */
   public async clearQueue(): Promise<void> {
-    await this.queue.empty();
+    await this.queue.drain();
   }
 
   /**
-   * Process jobs with concurrency settings.
+   * ✅ Start worker for processing jobs with concurrency settings.
    */
-  private processJobs(): void {
-    this.queue.process(config.concurrency, async (job) => {
-      try {
+  private createWorker(): Worker {
+    return new Worker(
+      config.queueName,
+      async (job) => {
         console.log(`🔄 Processing job ${job.id} with data:`, job.data);
-
-        // Simulated processing delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+        await new Promise(resolve => setTimeout(resolve, config.pollInterval));
         console.log(`✅ Job ${job.id} completed successfully.`);
         return { success: true };
-      } catch (error) {
-        console.error(`❌ Job ${job.id} failed with error:`, error);
-        throw error;
+      },
+      {
+        connection: this.queue.opts.connection,
+        concurrency: config.concurrency
       }
-    });
+    );
   }
 
   /**
-   * Register event listeners for better monitoring.
+   * ✅ Register event listeners for job lifecycle monitoring.
    */
-  private registerEventListeners(): void {
-    this.queue.on('completed', (job) => {
-      console.log(`✅ Job ${job.id} successfully completed.`);
+  private setupEventListeners(): void {
+    this.queueEvents.on('completed', ({ jobId }) => {
+      console.log(`✅ Job ${jobId} successfully completed.`);
     });
 
-    this.queue.on('failed', (job, err) => {
-      console.error(`❌ Job ${job.id} failed. Error:`, err);
+    this.queueEvents.on('failed', ({ jobId, failedReason }) => {
+      console.error(`❌ Job ${jobId} failed. Error: ${failedReason}`);
     });
 
-    this.queue.on('stalled', (job) => {
-      console.warn(`⚠️ Job ${job.id} has stalled and will be retried.`);
+    this.queueEvents.on('stalled', ({ jobId }) => {
+      console.warn(`⚠️ Job ${jobId} has stalled and will be retried.`);
     });
 
-    this.queue.on('progress', (job, progress) => {
-      console.log(`⏳ Job ${job.id} is ${progress}% complete.`);
+    this.queueEvents.on('active', ({ jobId }) => {
+      console.log(`🛠️ Job ${jobId} is now active.`);
     });
 
-    this.queue.on('active', (job) => {
-      console.log(`🛠️ Job ${job.id} is now active.`);
+    this.queueEvents.on('waiting', ({ jobId }) => {
+      console.log(`⏳ Job ${jobId} is waiting to be processed.`);
     });
 
-    this.queue.on('removed', (job) => {
-      console.log(`🗑️ Job ${job.id} was removed from the queue.`);
+    this.queueEvents.on('progress', ({ jobId, data }) => {
+      console.log(`⏳ Job ${jobId} is ${data}% complete.`);
     });
+
+    console.log('📢 Queue event listeners initialized.');
+  }
+
+  /**
+   * ✅ Gracefully shut down queue and workers.
+   */
+  public async closeQueue(): Promise<void> {
+    console.log('🛑 Shutting down Queue & Worker...');
+    await this.worker.close();
+    await this.queue.close();
+    await this.queueEvents.close();
   }
 }

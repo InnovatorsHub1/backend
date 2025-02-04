@@ -2,23 +2,23 @@ import { Collection, ObjectId, Filter, Sort, WithId, OptionalUnlessRequiredId } 
 import { IBaseRepository, QueryOptions } from './IBaseRepository';
 
 
-interface BaseDocument {
-    _id?: string | ObjectId;
-    isDeleted: boolean;
-    createdAt: Date;
-    updatedAt: Date;
+export interface BaseDocument {
+  _id?: string | ObjectId;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T> {
-   constructor(protected collection: Collection<T>) {}
+  constructor(protected collection: Collection<T>) { }
 
-   protected getBaseQuery(): Filter<T> {
-     return { isDeleted: false } as Filter<T>;
-   }
+  protected getBaseQuery(): Filter<T> {
+    return { isDeleted: false } as Filter<T>;
+  }
 
-   async findOne(query: Filter<T>): Promise<WithId<T> | null> {
-     return this.collection.findOne({ ...this.getBaseQuery(), ...query });
-   }
+  async findOne(query: Filter<T>): Promise<WithId<T> | null> {
+    return this.collection.findOne({ ...this.getBaseQuery(), ...query });
+  }
 
   async findMany(query: Filter<T>, options?: QueryOptions): Promise<WithId<T>[]> {
     let cursor = this.collection.find(query);
@@ -29,7 +29,7 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
       const projection = options.select.reduce((acc, field) => ({ ...acc, [field]: 1 }), {});
       cursor = cursor.project(projection);
     }
-    return cursor.toArray(); 
+    return cursor.toArray();
   }
 
   async create(data: Partial<T>): Promise<WithId<T>> {
@@ -37,8 +37,8 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
       ...data,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as unknown as OptionalUnlessRequiredId<T>); 
-  
+    } as unknown as OptionalUnlessRequiredId<T>);
+
     return this.collection.findOne({ _id: result.insertedId as ObjectId } as Filter<T>) as Promise<WithId<T>>
   }
 
@@ -46,25 +46,25 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
     const objectId = new ObjectId(id);
     const updated = await this.collection.findOneAndUpdate(
       { _id: objectId } as Filter<T>,
-      { 
-        $set: { 
-          ...data, 
-          updatedAt: new Date() 
+      {
+        $set: {
+          ...data,
+          updatedAt: new Date()
         } as Partial<T>
       },
       { returnDocument: 'after' }
     );
     return updated;
-   }
+  }
 
   async delete(id: string): Promise<boolean> {
     const objectId = new ObjectId(id);
     const result = await this.collection.updateOne(
       { _id: objectId } as Filter<T>,
-      { 
-        $set: { 
-          isDeleted: true, 
-          updatedAt: new Date() 
+      {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date()
         } as unknown as Partial<T>
       }
     );

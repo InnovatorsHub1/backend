@@ -11,34 +11,26 @@ import { randomUUID } from 'crypto';
  * Service for handling JWT tokens with refresh token support
  */
 export class JwtService {
-    private publicKey: string;
-    private privateKey: string;
+    private publicKey!: string;
+    private privateKey!: string;
     private readonly db: IMongoConnection;
-    private readonly accessExpiration: string | number;
-    private readonly refreshExpiration: string | number;
+    private accessExpiration!: string | number;
+    private refreshExpiration!: string | number;
     private readonly verifyOptions = { algorithms: ['RS256'] };
     private readonly MAX_CONCURRENT_SESSIONS = 5;
 
-    /**
-     * Creates a new JWT service instance
-     * @param {IMongoConnection} db - MongoDB connection instance
-     * @throws {ApiError} When initialization fails
-     */
-    constructor(db: IMongoConnection = mongoConnection) {
-        try {
-            if (!db) throw new Error('Database connection is required');
-            if (!config.jwtPublicKeyPath || !config.jwtPrivateKeyPath) {
-                throw new Error('JWT key paths are required');
-            }
-            if (!config.jwtAccessExpiration || !config.jwtRefreshExpiration) {
-                throw new Error('JWT expiration configuration is required');
-            }
 
-            this.publicKey = fs.readFileSync(config.jwtPublicKeyPath, 'utf8');
-            this.privateKey = fs.readFileSync(config.jwtPrivateKeyPath, 'utf8');
-            this.accessExpiration = config.jwtAccessExpiration;
-            this.refreshExpiration = config.jwtRefreshExpiration;
-            this.db = db;
+
+    constructor(db: IMongoConnection = mongoConnection) {
+        this.db = db;
+        this.initializeService();
+    }
+
+    private initializeService(): void {
+        try {
+            this.validateDependencies();
+            this.loadKeys();
+            this.loadConfiguration();
 
             this.initialize().catch(error => {
                 console.error('Failed to initialize TTL index:', error);
@@ -49,7 +41,26 @@ export class JwtService {
         }
     }
 
+    private validateDependencies(): void {
+        if (!this.db) throw new Error('Database connection is required');
+        if (!config.jwtPublicKeyPath || !config.jwtPrivateKeyPath) {
+            throw new Error('JWT key paths are required');
+        }
+        if (!config.jwtAccessExpiration || !config.jwtRefreshExpiration) {
+            throw new Error('JWT expiration configuration is required');
+        }
+    }
 
+    private loadKeys(): void {
+        this.publicKey = fs.readFileSync(config.jwtPublicKeyPath!, 'utf8');
+        this.privateKey = fs.readFileSync(config.jwtPrivateKeyPath!, 'utf8');
+    }
+
+
+    private loadConfiguration(): void {
+        this.accessExpiration = config.jwtAccessExpiration;
+        this.refreshExpiration = config.jwtRefreshExpiration;
+    }
 
     private jtiCollection() {
         return this.db.getClient().db().collection<JtiDocument>('jti');
@@ -73,7 +84,6 @@ export class JwtService {
         }
     }
 
-
     private mapJwtError(error: unknown): never {
         if (error instanceof TokenExpiredError) {
             throw new ApiError('Token expired', StatusCodes.UNAUTHORIZED, 'JwtService');
@@ -83,7 +93,6 @@ export class JwtService {
         }
         throw new ApiError('JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR, 'JwtService');
     }
-
 
     private validatePayload(payload: AccessTokenPayload): void {
         if (!payload?.sub || typeof payload.sub !== 'string') {
@@ -203,7 +212,6 @@ export class JwtService {
         });
     }
 
-
     public async revokeToken(jti: string): Promise<void> {
         return this.runWithErrorHandling(async () => {
             const result = await this.jtiCollection().deleteOne({ _id: jti });
@@ -212,7 +220,6 @@ export class JwtService {
             }
         });
     }
-
 
     public async initialize(): Promise<void> {
         await this.initializeJtiTTLIndex();

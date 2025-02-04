@@ -21,7 +21,7 @@ docker-compose up --build
 ```
 
 ## Environment Setup
-https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?tab=t.0
+https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?usp=sharing
 
 if you dont have permission please talk with shay saruusi elshten
 

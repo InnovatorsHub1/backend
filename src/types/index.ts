@@ -28,18 +28,19 @@ export interface IErrorResponse {
     jwtPrivateKeyPath: string | undefined;
     jwtAccessExpiration: string | number;
     jwtRefreshExpiration: string | number;
-    
-    // Redis configuration
-    redisUrl: string;
-    queueName: string;
-    maxRetries: number;
-    retryDelay: number;
-    jobTimeout: number;
 
-    // Worker configuration
-    concurrency: number;
-    prefetchCount: number;
-    pollInterval: number;
-    maxTasksPerChild: number;
+     // Redis configuration
+     redisUrl: string;
+     queueName: string;
+     maxRetries: number;
+     retryDelay: number;
+     jobTimeout: number;
+ 
+     // Worker configuration
+     concurrency: number;
+     prefetchCount: number;
+     pollInterval: number;
+     maxTasksPerChild: number;
+    
   }
 

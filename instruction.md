@@ -21,7 +21,6 @@ docker-compose up --build
 ```
 
 ## Environment Setup
-
 ### Configure .env:
 
 ```env
@@ -55,6 +54,7 @@ MAX_TASKS_PER_CHILD=1000
 https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?usp=sharing
 
 if you dont have permission please talk with shay saruusi elshten
+
 
 ### Install dependencies:
 

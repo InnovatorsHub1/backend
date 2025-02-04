@@ -13,7 +13,11 @@ const getConfig = (): IConfig => ({
   logLevel: process.env.LOG_LEVEL || 'info',
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['*'],
   cookieSecret: process.env.COOKIE_SECRET || 'default-secret',
-  apiVersion: process.env.API_VERSION || 'v1',
+  apiVersion: process.env.API_VERSION || 'v1'
+  jwtPublicKeyPath: process.env.JWT_PUBLIC_KEY_PATH,
+  jwtPrivateKeyPath: process.env.JWT_PRIVATE_KEY_PATH,
+  jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
+  jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h',
 
   // Redis configuration
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -35,7 +39,7 @@ const getConfig = (): IConfig => ({
 
 const validateConfig = (config: IConfig): void => {
   const requiredFields: (keyof IConfig)[] = ['port', 'nodeEnv', 'appName'];
-  
+
   for (const field of requiredFields) {
     if (!config[field]) {
       throw new Error(`Missing required config field: ${field}`);

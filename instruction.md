@@ -21,42 +21,10 @@ docker-compose up --build
 ```
 
 ## Environment Setup
+https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?tab=t.0
 
-### Generate RSA Keys:
-```bash
-# Create keys directory
-mkdir -p keys
+if you dont have permission please talk with shay saruusi elshten
 
-# Generate private key
-openssl genpkey -algorithm RSA -out keys/private.pem -pkeyopt rsa_keygen_bits:2048
-
-# Generate public key
-openssl rsa -pubout -in keys/private.pem -out keys/public.pem
-```
-
-### Configure .env:
-```env
-PORT=3000
-APP_NAME=api-gateway
-NODE_ENV=development
-IS_ELASTIC_CONFIGURED=false
-ELASTIC_URL=http://localhost:9200
-BASE_URL=/api
-CORS_ORIGINS=*
-COOKIE_SECRET=your-secret-key
-API_VERSION=v1
-
-# JWT Configuration
-JWT_PRIVATE_KEY_PATH=./keys/private.pem
-JWT_PUBLIC_KEY_PATH=./keys/public.pem
-JWT_ACCESS_EXPIRATION=1h
-JWT_REFRESH_EXPIRATION=7d
-
-# MongoDB Configuration
-MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=password
-MONGO_URI=mongodb://admin:password@localhost:27017/test?authSource=admin
-```
 
 
 ### Install dependencies:

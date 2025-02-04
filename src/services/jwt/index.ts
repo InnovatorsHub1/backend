@@ -29,8 +29,11 @@ export class JwtService {
     private initializeService(): void {
         try {
             this.validateDependencies();
-            this.loadKeys();
-            this.loadConfiguration();
+            
+            this.publicKey = fs.readFileSync(config.jwtPublicKeyPath!, 'utf8');
+            this.privateKey = fs.readFileSync(config.jwtPrivateKeyPath!, 'utf8');
+            this.accessExpiration = config.jwtAccessExpiration;
+            this.refreshExpiration = config.jwtRefreshExpiration;   
 
             this.initialize().catch(error => {
                 console.error('Failed to initialize TTL index:', error);
@@ -51,16 +54,7 @@ export class JwtService {
         }
     }
 
-    private loadKeys(): void {
-        this.publicKey = fs.readFileSync(config.jwtPublicKeyPath!, 'utf8');
-        this.privateKey = fs.readFileSync(config.jwtPrivateKeyPath!, 'utf8');
-    }
-
-
-    private loadConfiguration(): void {
-        this.accessExpiration = config.jwtAccessExpiration;
-        this.refreshExpiration = config.jwtRefreshExpiration;
-    }
+    
 
     private jtiCollection() {
         return this.db.getClient().db().collection<JtiDocument>('jti');

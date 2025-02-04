@@ -21,6 +21,7 @@ docker-compose up --build
 ```
 
 ## Environment Setup
+
 ### Configure .env:
 
 ```env
@@ -51,6 +52,10 @@ POLL_INTERVAL=1000 # 1 second
 MAX_TASKS_PER_CHILD=1000
 ```
 
+https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?usp=sharing
+
+if you dont have permission please talk with shay saruusi elshten
+
 ### Install dependencies:
 
 ```bash
@@ -64,6 +69,7 @@ npm run dev
 ```
 
 ## API Endpoints
+
 ### Health Check
 
 ```bash
@@ -130,27 +136,31 @@ curl -X POST \
   --output invoice.pdf
 ```
 
-### Queue : 
- ```bash
- curl -X POST http://localhost:3000/api/queue/enqueue \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task": "process video",
-    "priority": 1
-  }'
- ```
- get queue status
- ```bash
- curl -X GET http://localhost:3000/api/queue/status/{jobId}
+### Queue :
 
- ```
- cancel job :
- ```bash
- curl -X POST http://localhost:3000/api/queue/cancel/{jobId}
+```bash
+curl -X POST http://localhost:3000/api/queue/enqueue \
+ -H "Content-Type: application/json" \
+ -d '{
+   "task": "process video",
+   "priority": 1
+ }'
 ```
 
+get queue status
 
-## Running Tests 
+```bash
+curl -X GET http://localhost:3000/api/queue/status/{jobId}
+
+```
+
+cancel job :
+
+```bash
+curl -X POST http://localhost:3000/api/queue/cancel/{jobId}
+```
+
+## Running Tests
 
 ### with Docker
 
@@ -185,4 +195,3 @@ docker volume prune
 # Remove unused networks
 docker network prune
 ```
-

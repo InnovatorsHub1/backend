@@ -24,6 +24,10 @@ export interface IErrorResponse {
     corsOrigins: string[];
     cookieSecret: string;
     apiVersion: string;
+    jwtPublicKeyPath: string | undefined;
+    jwtPrivateKeyPath: string | undefined;
+    jwtAccessExpiration: string | number;
+    jwtRefreshExpiration: string | number;
     
     // Redis configuration
     redisUrl: string;

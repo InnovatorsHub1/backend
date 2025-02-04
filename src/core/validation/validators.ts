@@ -1,14 +1,51 @@
-import { ValidatorFn } from './validation.types';
+import { ValidationValue, ValidatorFn, ValidatorParams, ValidatorResult } from './validation.types';
 
 export const StandardValidators: Record<string, ValidatorFn> = {
-  required: (value: unknown) => value !== undefined && value !== null && value !== '',
-  string: (value: unknown) => typeof value === 'string',
-  email: (value: unknown) => typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-  min: (value: unknown, min: unknown) => typeof value === 'number' && typeof min === 'number' && value >= min,
-  max: (value: unknown, max: unknown) => typeof value === 'number' && typeof max === 'number' && value <= max,
-  regex: (value: unknown, params: unknown) => typeof value === 'string' && params instanceof RegExp && params.test(value),
-  number: (value: unknown) => typeof value === 'number' && !isNaN(value),
-  boolean: (value: unknown) => typeof value === 'boolean',
-  array: (value: unknown) => Array.isArray(value),
-  object: (value: unknown) => typeof value === 'object' && value !== null && !Array.isArray(value),
+  required: (value: ValidationValue): ValidatorResult => {
+    return value !== undefined && value !== null && value !== '';
+  },
+
+  string: (value: ValidationValue): ValidatorResult => {
+    return typeof value === 'string';
+  },
+
+  email: (value: ValidationValue): ValidatorResult => {
+    if (typeof value !== 'string') {return false;}
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  },
+
+  min: (value: ValidationValue, params?: ValidatorParams): ValidatorResult => {
+    if (typeof value !== 'number' || !params?.min) {return false;}
+    
+    return value >= params.min;
+  },
+
+  max: (value: ValidationValue, params?: ValidatorParams): ValidatorResult => {
+    if (typeof value !== 'number' || !params?.max) {return false;}
+
+    return value <= params.max;
+  },
+
+  regex: (value: ValidationValue, params?: ValidatorParams): ValidatorResult => {
+    if (typeof value !== 'string' || !params?.pattern) {return false;}
+
+    return params.pattern.test(value);
+  },
+
+  number: (value: ValidationValue): ValidatorResult => {
+    return typeof value === 'number' && !isNaN(value);
+  },
+
+  boolean: (value: ValidationValue): ValidatorResult => {
+    return typeof value === 'boolean';
+  },
+
+  array: (value: ValidationValue): ValidatorResult => {
+    return Array.isArray(value);
+  },
+
+  object: (value: ValidationValue): ValidatorResult => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  },
 };

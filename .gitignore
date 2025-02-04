@@ -23,3 +23,7 @@ jspm_packages/
 
 # Exclude coverage directory
 coverage/
+
+# RSA Keys
+keys/
+*.pem

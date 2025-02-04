@@ -10,6 +10,7 @@ import {
   ValidatorFn,
   ValidationError,
   AsyncValidatorFn,
+  ValidationValue,
 } from './validation.types';
 import { StandardValidators } from './validators';
 
@@ -43,7 +44,7 @@ export class ValidationService implements IValidationService {
    * @param schema - The validation schema
    * @returns ValidationResult containing validation status and errors
    */
-  public validate<T>(data: T, schema: ValidationSchema): ValidationResult {
+  public validate(data: ValidationValue, schema: ValidationSchema): ValidationResult {
     const errors: ValidationError[] = [];
     
     if (!this.validators[schema.type](data)) {
@@ -60,9 +61,10 @@ export class ValidationService implements IValidationService {
       errors.push(...fieldResult.errors);
     }
 
-    if (schema.fields && typeof data === 'object') {
+    if (schema.fields && this.validators.object(data)) {
+      const objectData = data as Record<string, ValidationValue>;
       Object.entries(schema.fields).forEach(([field, fieldSchema]) => {
-        const fieldValue = (data as Record<string, unknown>)[field];
+        const fieldValue = objectData[field];
         const fieldResult = this.validate(fieldValue, fieldSchema);
         
         fieldResult.errors.forEach((error) => {
@@ -79,7 +81,7 @@ export class ValidationService implements IValidationService {
       errors,
     };
   }
-  public validateField<T>(value: T, rules: ValidationRule[]): ValidationResult {
+  public validateField(value: ValidationValue, rules: ValidationRule[]): ValidationResult {
     const errors: ValidationError[] = [];
 
     for (const rule of rules) {
@@ -103,7 +105,7 @@ export class ValidationService implements IValidationService {
       errors,
     };
   }
-  public async validateAsync<T>(data: T, schema: ValidationSchema): Promise<ValidationResult> {
+  public async validateAsync(data: ValidationValue, schema: ValidationSchema): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
     
     if (schema.asyncRules) {

@@ -22,6 +22,10 @@ docker-compose up --build
 
 ## Environment Setup
 
+https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?usp=sharing
+
+if you dont have permission please talk with shay saruusi elshten
+
 ### Configure .env:
 
 ```env
@@ -119,7 +123,7 @@ curl -X POST \
   --output invoice.pdf
 ```
 
-## Running Tests 
+## Running Tests
 
 ### with Docker
 
@@ -154,4 +158,3 @@ docker volume prune
 # Remove unused networks
 docker network prune
 ```
-

@@ -51,7 +51,13 @@ JWT_PRIVATE_KEY_PATH=./keys/private.pem
 JWT_PUBLIC_KEY_PATH=./keys/public.pem
 JWT_ACCESS_EXPIRATION=1h
 JWT_REFRESH_EXPIRATION=7d
+
+# MongoDB Configuration
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=password
+MONGO_URI=mongodb://admin:password@localhost:27017/test?authSource=admin
 ```
+
 
 ### Install dependencies:
 
@@ -66,7 +72,6 @@ npm run dev
 ```
 
 ## API Endpoints
-
 ### Health Check
 
 ```bash
@@ -140,13 +145,13 @@ curl -X POST \
 ```bash
 docker-compose up -d
 # All tests
-docker-compose exec app npm run test:integration
+docker-compose exec app npm run test:unit
 ```
 
 ### in local
 
 ```bash
-npm run test:integration
+npm run test:unit
 ```
 
 ### Port in Use

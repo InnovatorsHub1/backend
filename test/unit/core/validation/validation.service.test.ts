@@ -64,7 +64,7 @@ describe('ValidationService', () => {
             type: 'object',
             fields: {
               email: { type: 'string', rules: [{ name: 'email' }] },
-              age: { type: 'number', rules: [{ name: 'min', params: 18 }] },
+              age: { type: 'number', rules: [{ name: 'min', params: { min: 18 } }] },
             },
           },
         },
@@ -79,6 +79,16 @@ describe('ValidationService', () => {
 
       const result = validationService.validate(data, schema);
       expect(result.isValid).toBe(true);
+    });
+    it('should handle invalid nested object data', () => {
+      const schema: ValidationSchema = {
+        type: 'object',
+        fields: {
+          email: { type: 'string', rules: [{ name: 'email' }] },
+        },
+      };
+      const result = validationService.validate({ email: 123 }, schema);
+      expect(result.isValid).toBe(false);
     });
   });
 

@@ -64,6 +64,7 @@ export class App {
       this.server = this.app.listen(config.port, () => {
         logger.info(`Server started on port ${config.port}`);
         logger.info(`Health check endpoint: ${config.baseUrl}/health`);
+        logger.info(`Queue system is running : ${config.baseUrl}/queue`);
         logger.info(`Node environment: ${config.nodeEnv}`);
       });
     } catch (error) {

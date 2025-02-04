@@ -1,4 +1,4 @@
-version: '3.8'
+
 services:
   app:
     build:
@@ -15,6 +15,7 @@ services:
     environment:
       NODE_ENV: development
       MONGO_URI: mongodb://admin:password@mongodb:27017/test?authSource=admin
+      REDIS_URL: redis://redis:6379
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
     security_opt:
       - seccomp=unconfined
@@ -24,6 +25,7 @@ services:
     command: npm run dev
     depends_on:
       - mongodb
+      - redis
 
   mongodb:
     image: mongo:6.0
@@ -35,6 +37,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
+
+  redis:  
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
 
 volumes:
   mongo_data:

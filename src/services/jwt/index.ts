@@ -13,9 +13,9 @@ import { randomUUID } from 'crypto';
 export class JwtService {
     private publicKey!: string;
     private privateKey!: string;
-    private readonly db: IMongoConnection;
     private accessExpiration!: string | number;
     private refreshExpiration!: string | number;
+    private readonly db: IMongoConnection;
     private readonly verifyOptions = { algorithms: ['RS256'] };
     private readonly MAX_CONCURRENT_SESSIONS = 5;
 

@@ -50,7 +50,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          ECR_REGISTRY=$(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          ECR_REGISTRY=$(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/autodocs-backend-repo
           IMAGE_TAG=${{ github.event.pull_request.number }}
           
           docker build \

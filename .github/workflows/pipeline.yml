@@ -10,34 +10,6 @@ jobs:
   test:
     name: Run Tests 🧪
     runs-on: ubuntu-latest
-    
-    env:
-      PORT: ${{ secrets.PORT }}
-      APP_NAME: ${{ secrets.APP_NAME }}
-      NODE_ENV: ${{ secrets.NODE_ENV }}
-      IS_ELASTIC_CONFIGURED: ${{ secrets.IS_ELASTIC_CONFIGURED }}
-      ELASTIC_URL: ${{ secrets.ELASTIC_URL }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
-      COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-      API_VERSION: ${{ secrets.API_VERSION }}
-      JWT_PRIVATE_KEY_PATH: ${{ secrets.JWT_PRIVATE_KEY_PATH }}
-      JWT_PUBLIC_KEY_PATH: ${{ secrets.JWT_PUBLIC_KEY_PATH }}
-      JWT_ACCESS_EXPIRATION: ${{ secrets.JWT_ACCESS_EXPIRATION }}
-      JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
-      MONGO_INITDB_ROOT_USERNAME: ${{ secrets.MONGO_INITDB_ROOT_USERNAME }}
-      MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
-      REDIS_URL: ${{ secrets.REDIS_URL }}
-      QUEUE_NAME: ${{ secrets.QUEUE_NAME }}
-      MAX_RETRIES: ${{ secrets.MAX_RETRIES }}
-      RETRY_DELAY: ${{ secrets.RETRY_DELAY }}
-      JOB_TIMEOUT: ${{ secrets.JOB_TIMEOUT }}
-      CONCURRENCY: ${{ secrets.CONCURRENCY }}
-      PREFETCH_COUNT: ${{ secrets.PREFETCH_COUNT }}
-      POLL_INTERVAL: ${{ secrets.POLL_INTERVAL }}
-      MAX_TASKS_PER_CHILD: ${{ secrets.MAX_TASKS_PER_CHILD }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

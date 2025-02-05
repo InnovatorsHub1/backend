@@ -40,9 +40,7 @@ RUN npm install && \
 # Copy source code and configuration files
 COPY . .
 COPY --from=builder /app/build ./build
-RUN if [ ! -f .env ]; then \
-    echo "No .env file found, using environment variables from pipeline"; \
-    fi
+COPY .env ./
 
 # Set permissions for the entire app directory
 RUN chmod -R 777 /app

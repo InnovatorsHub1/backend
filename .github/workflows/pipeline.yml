@@ -10,6 +10,24 @@ jobs:
   test:
     name: Install dependencies & Run Tests 🧪
     runs-on: ubuntu-latest
+
+    services:
+        mongodb:
+          image: mongo:6
+          env:
+            MONGO_INITDB_ROOT_USERNAME: ${{ secrets.MONGO_INITDB_ROOT_USERNAME }}
+            MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+          ports:
+            - 27017:27017
+          options: >-
+            --health-cmd mongosh
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+    env:
+        MONGO_URI: mongodb://${{ secrets.MONGO_INITDB_ROOT_USERNAME }}:${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}@localhost:27017
+        NODE_ENV: test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,7 +37,10 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-
+      - name: Wait for MongoDB
+        run: |
+            timeout 30 bash -c 'until mongosh --eval "db.runCommand({ping:1})" --quiet; do sleep 1; done'
+  
       - name: Install dependencies
         run: npm install
         

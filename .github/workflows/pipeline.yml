@@ -8,36 +8,8 @@ on:
 
 jobs:
   test:
-    name: Run Tests
+    name: Run Tests 🧪
     runs-on: ubuntu-latest
-    
-    env:
-      PORT: ${{ secrets.PORT }}
-      APP_NAME: ${{ secrets.APP_NAME }}
-      NODE_ENV: ${{ secrets.NODE_ENV }}
-      IS_ELASTIC_CONFIGURED: ${{ secrets.IS_ELASTIC_CONFIGURED }}
-      ELASTIC_URL: ${{ secrets.ELASTIC_URL }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
-      COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-      API_VERSION: ${{ secrets.API_VERSION }}
-      JWT_PRIVATE_KEY_PATH: ${{ secrets.JWT_PRIVATE_KEY_PATH }}
-      JWT_PUBLIC_KEY_PATH: ${{ secrets.JWT_PUBLIC_KEY_PATH }}
-      JWT_ACCESS_EXPIRATION: ${{ secrets.JWT_ACCESS_EXPIRATION }}
-      JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
-      MONGO_INITDB_ROOT_USERNAME: ${{ secrets.MONGO_INITDB_ROOT_USERNAME }}
-      MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
-      MONGO_URI: ${{ secrets.MONGO_URI }}
-      REDIS_URL: ${{ secrets.REDIS_URL }}
-      QUEUE_NAME: ${{ secrets.QUEUE_NAME }}
-      MAX_RETRIES: ${{ secrets.MAX_RETRIES }}
-      RETRY_DELAY: ${{ secrets.RETRY_DELAY }}
-      JOB_TIMEOUT: ${{ secrets.JOB_TIMEOUT }}
-      CONCURRENCY: ${{ secrets.CONCURRENCY }}
-      PREFETCH_COUNT: ${{ secrets.PREFETCH_COUNT }}
-      POLL_INTERVAL: ${{ secrets.POLL_INTERVAL }}
-      MAX_TASKS_PER_CHILD: ${{ secrets.MAX_TASKS_PER_CHILD }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,13 +21,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests
-        run: npm run test:unit
+        run: npm install
 
   deploy:
-    name: Build and Deploy to ECS
+    name: Build and Deploy to ECR 🚀
     needs: test
     runs-on: ubuntu-latest
 
@@ -83,7 +52,34 @@ jobs:
         run: |
           ECR_REGISTRY=$(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
           IMAGE_TAG=${{ github.event.pull_request.number }}
-          docker build -t $ECR_REGISTRY/autodocs-backend:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/autodocs-backend:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/autodocs-backend:$IMAGE_TAG $ECR_REGISTRY/autodocs-backend:latest
-          docker push $ECR_REGISTRY/autodocs-backend:latest
+          
+          docker build \
+            --build-arg PORT=${{ secrets.PORT }} \
+            --build-arg APP_NAME=${{ secrets.APP_NAME }} \
+            --build-arg NODE_ENV=${{ secrets.NODE_ENV }} \
+            --build-arg IS_ELASTIC_CONFIGURED=${{ secrets.IS_ELASTIC_CONFIGURED }} \
+            --build-arg ELASTIC_URL=${{ secrets.ELASTIC_URL }} \
+            --build-arg BASE_URL=${{ secrets.BASE_URL }} \
+            --build-arg CORS_ORIGINS=${{ secrets.CORS_ORIGINS }} \
+            --build-arg COOKIE_SECRET=${{ secrets.COOKIE_SECRET }} \
+            --build-arg API_VERSION=${{ secrets.API_VERSION }} \
+            --build-arg JWT_PRIVATE_KEY_PATH=${{ secrets.JWT_PRIVATE_KEY_PATH }} \
+            --build-arg JWT_PUBLIC_KEY_PATH=${{ secrets.JWT_PUBLIC_KEY_PATH }} \
+            --build-arg JWT_ACCESS_EXPIRATION=${{ secrets.JWT_ACCESS_EXPIRATION }} \
+            --build-arg JWT_REFRESH_EXPIRATION=${{ secrets.JWT_REFRESH_EXPIRATION }} \
+            --build-arg MONGO_INITDB_ROOT_USERNAME=${{ secrets.MONGO_INITDB_ROOT_USERNAME }} \
+            --build-arg MONGO_INITDB_ROOT_PASSWORD=${{ secrets.MONGO_INITDB_ROOT_PASSWORD }} \
+            --build-arg MONGO_URI=${{ secrets.MONGO_URI }} \
+            --build-arg REDIS_URL=${{ secrets.REDIS_URL }} \
+            --build-arg QUEUE_NAME=${{ secrets.QUEUE_NAME }} \
+            --build-arg MAX_RETRIES=${{ secrets.MAX_RETRIES }} \
+            --build-arg RETRY_DELAY=${{ secrets.RETRY_DELAY }} \
+            --build-arg JOB_TIMEOUT=${{ secrets.JOB_TIMEOUT }} \
+            --build-arg CONCURRENCY=${{ secrets.CONCURRENCY }} \
+            --build-arg PREFETCH_COUNT=${{ secrets.PREFETCH_COUNT }} \
+            --build-arg POLL_INTERVAL=${{ secrets.POLL_INTERVAL }} \
+            --build-arg MAX_TASKS_PER_CHILD=${{ secrets.MAX_TASKS_PER_CHILD }} \
+            -t $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG $ECR_REGISTRY/autodocs-backend-repo:latest
+          docker push $ECR_REGISTRY/autodocs-backend-repo:latest

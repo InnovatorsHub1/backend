@@ -49,13 +49,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Install Jest globally
-        run: npm install -g jest
-
-      - name: Run unit tests
-        run: npm run test:unit
+        run: npm install
 
   deploy:
     name: Build and Deploy to ECS

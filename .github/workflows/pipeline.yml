@@ -81,5 +81,3 @@ jobs:
             --build-arg MAX_TASKS_PER_CHILD=${{ secrets.MAX_TASKS_PER_CHILD }} \
             -t $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG .
           docker push $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG $ECR_REGISTRY/autodocs-backend-repo:latest
-          docker push $ECR_REGISTRY/autodocs-backend-repo:latest

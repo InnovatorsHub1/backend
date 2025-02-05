@@ -147,3 +147,5 @@ Dockerfile.dev
 .dockerignore
 .npmrc
 Jenkinsfile
+package.json
+package-lock.json

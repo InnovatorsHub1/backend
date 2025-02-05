@@ -4,33 +4,38 @@ import cors from 'cors';
 import compression from 'compression';
 import cookieSession from 'cookie-session';
 import { rateLimit } from 'express-rate-limit';
+
 import { config } from '../config';
 
 export const setupSecurityMiddleware = (app: Application): void => {
   // Basic security headers
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:']
+        }
       },
-    },
-    crossOriginEmbedderPolicy: true,
-    crossOriginOpenerPolicy: { policy: "same-origin" },
-    crossOriginResourcePolicy: { policy: "same-site" },
-    hidePoweredBy: true,
-  }));
+      crossOriginEmbedderPolicy: true,
+      crossOriginOpenerPolicy: { policy: 'same-origin' },
+      crossOriginResourcePolicy: { policy: 'same-site' },
+      hidePoweredBy: true
+    })
+  );
 
   // CORS configuration
-  app.use(cors({
-    origin: config.corsOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-    maxAge: 86400 // 24 hours
-  }));
+  app.use(
+    cors({
+      origin: config.corsOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+      maxAge: 86400 // 24 hours
+    })
+  );
 
   // Compression
   app.use(compression());
@@ -44,14 +49,16 @@ export const setupSecurityMiddleware = (app: Application): void => {
   app.use(limiter);
 
   // Session handling
-  app.use(cookieSession({
-    name: 'session',
-    keys: [config.cookieSecret],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: config.nodeEnv === 'production',
-    sameSite: 'lax',
-    httpOnly: true
-  }));
+  app.use(
+    cookieSession({
+      name: 'session',
+      keys: [config.cookieSecret],
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: config.nodeEnv === 'production',
+      sameSite: 'lax',
+      httpOnly: true
+    })
+  );
 
   // Trust proxy if behind reverse proxy
   app.set('trust proxy', 1);
@@ -62,4 +69,4 @@ export const setupSecurityMiddleware = (app: Application): void => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     next();
   });
-}
+};

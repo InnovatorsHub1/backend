@@ -1,5 +1,5 @@
 // Base types for validation values
-export type ValidationValue = string | number | boolean | object | unknown[] | null | undefined ;
+export type ValidationValue = string | number | boolean | object | unknown[] | null | undefined;
 export type ValidatorResult = boolean;
 
 // Params interface for validators
@@ -9,12 +9,11 @@ export interface ValidatorParams {
   pattern?: RegExp;
   email?: boolean;
   required?: boolean;
-  [key: string]: unknown;  // Allow for custom params while maintaining type safety
+  [key: string]: unknown; // Allow for custom params while maintaining type safety
 }
 
 export type ValidatorFn = (value: ValidationValue, params?: ValidatorParams) => boolean;
 export type AsyncValidatorFn = (value: ValidationValue, params?: ValidatorParams) => Promise<boolean>;
-
 
 export interface ValidationError {
   field: string;

@@ -29,4 +29,3 @@ export interface IConfig {
   jwtAccessExpiration: string | number;
   jwtRefreshExpiration: string | number;
 }
-

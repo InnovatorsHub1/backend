@@ -10,7 +10,7 @@ import {
   ValidatorFn,
   ValidationError,
   AsyncValidatorFn,
-  ValidationValue,
+  ValidationValue
 } from './validation.types';
 import { StandardValidators } from './validators';
 
@@ -46,13 +46,13 @@ export class ValidationService implements IValidationService {
    */
   public validate(data: ValidationValue, schema: ValidationSchema): ValidationResult {
     const errors: ValidationError[] = [];
-    
+
     if (!this.validators[schema.type](data)) {
       errors.push({
         field: '',
-        message: `Invalid type. Expected ${schema.type}`,
+        message: `Invalid type. Expected ${schema.type}`
       });
-      
+
       return { isValid: false, errors };
     }
 
@@ -66,11 +66,11 @@ export class ValidationService implements IValidationService {
       Object.entries(schema.fields).forEach(([field, fieldSchema]) => {
         const fieldValue = objectData[field];
         const fieldResult = this.validate(fieldValue, fieldSchema);
-        
+
         fieldResult.errors.forEach((error) => {
           errors.push({
             field: field + (error.field ? `.${error.field}` : ''),
-            message: error.message,
+            message: error.message
           });
         });
       });
@@ -78,7 +78,7 @@ export class ValidationService implements IValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors,
+      errors
     };
   }
   public validateField(value: ValidationValue, rules: ValidationRule[]): ValidationResult {
@@ -95,19 +95,19 @@ export class ValidationService implements IValidationService {
       if (!isValid) {
         errors.push({
           field: '',
-          message: rule.message || `Validation failed for rule: ${rule.name}`,
+          message: rule.message || `Validation failed for rule: ${rule.name}`
         });
       }
     }
 
     return {
       isValid: errors.length === 0,
-      errors,
+      errors
     };
   }
   public async validateAsync(data: ValidationValue, schema: ValidationSchema): Promise<ValidationResult> {
     const errors: ValidationError[] = [];
-    
+
     if (schema.asyncRules) {
       for (const rule of schema.asyncRules) {
         const validator = this.asyncValidators[rule.name];
@@ -115,21 +115,20 @@ export class ValidationService implements IValidationService {
           this.logger.warn(`Async validator ${rule.name} not found`);
           continue;
         }
-        
+
         const isValid = await validator(data, rule.params);
         if (!isValid) {
           errors.push({
             field: '',
-            message: rule.message || `Async validation failed for rule: ${rule.name}`,
+            message: rule.message || `Async validation failed for rule: ${rule.name}`
           });
         }
       }
     }
-  
+
     return {
       isValid: errors.length === 0,
-      errors,
+      errors
     };
   }
-  
 }

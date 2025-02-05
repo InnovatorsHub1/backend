@@ -1,5 +1,6 @@
 import winston, { Logger, format, transports } from 'winston';
 import { ElasticsearchTransport } from 'winston-elasticsearch';
+
 import { ILogger } from '../../types';
 import { config } from '../../config';
 
@@ -7,22 +8,16 @@ export class WinstonLogger implements ILogger {
   private logger: Logger;
 
   constructor(serviceName: string) {
-    const { combine, timestamp, colorize, printf } = format;
+    const { combine, timestamp: timeStamp, colorize, printf } = format;
 
     const logFormat = printf(({ level, message, timestamp, ...meta }) => {
-      return `${timestamp} [${serviceName}] ${level}: ${message} ${
-        Object.keys(meta).length ? JSON.stringify(meta) : ''
-      }`;
+      return `${timestamp} [${serviceName}] ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
     });
 
     const transportArray: winston.transport[] = [
       new transports.Console({
-        format: combine(
-          colorize(),
-          timestamp(),
-          logFormat
-        )
-      })
+        format: combine(colorize(), timeStamp(), logFormat),
+      }),
     ];
 
     if (config.isElasticConfigured) {
@@ -33,15 +28,15 @@ export class WinstonLogger implements ILogger {
           severity: logData.level,
           message: logData.message,
           service: serviceName,
-          fields: logData.meta
+          fields: logData.meta,
         }),
         clientOpts: {
           node: config.elasticUrl,
           maxRetries: 2,
           requestTimeout: 10000,
-          sniffOnStart: false
+          sniffOnStart: false,
         },
-        indexPrefix: `logs-${serviceName.toLowerCase()}-${config.nodeEnv}`
+        indexPrefix: `logs-${serviceName.toLowerCase()}-${config.nodeEnv}`,
       });
 
       transportArray.push(elasticTransport);
@@ -50,7 +45,7 @@ export class WinstonLogger implements ILogger {
     this.logger = winston.createLogger({
       level: config.nodeEnv === 'development' ? 'debug' : 'info',
       defaultMeta: { service: serviceName },
-      transports: transportArray
+      transports: transportArray,
     });
   }
 

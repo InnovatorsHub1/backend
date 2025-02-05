@@ -26,23 +26,6 @@ https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/
 
 if you dont have permission please talk with shay saruusi elshten
 
-### Configure .env:
-
-```env
-PORT=3000
-APP_NAME=api-gateway
-NODE_ENV=development
-IS_ELASTIC_CONFIGURED=false
-ELASTIC_URL=http://localhost:9200
-BASE_URL=/api
-CORS_ORIGINS=*
-COOKIE_SECRET=your-secret-key
-API_VERSION=v1
-MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=password
-MONGO_URI=mongodb://admin:password@localhost:27017/test?authSource=admin
-```
-
 ### Install dependencies:
 
 ```bash

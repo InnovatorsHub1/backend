@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { injectable, inject } from 'inversify';
+
 import { TYPES } from '../core/di/types';
 import { PDFService } from '../services/pdf/pdf.service';
 import { WinstonLogger } from '../core/logger/winston.logger';
@@ -10,9 +11,7 @@ import { ApiError } from '../core/errors/api.error';
 export class PDFController {
   private logger = new WinstonLogger('PDFController');
 
-  constructor(
-    @inject(TYPES.PDFService) private readonly pdfService: PDFService
-  ) {}
+  constructor(@inject(TYPES.PDFService) private readonly pdfService: PDFService) {}
 
   generatePDF: RequestHandler = async (req, res) => {
     try {
@@ -23,7 +22,7 @@ export class PDFController {
       }
 
       const pdfBuffer = await this.pdfService.generatePDF(templateName, data, options);
-      
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=${templateName}.pdf`);
       res.status(StatusCodes.OK).send(pdfBuffer);
@@ -36,12 +35,12 @@ export class PDFController {
   mergePDFs: RequestHandler = async (req, res) => {
     try {
       const files = (req as any).files as Express.Multer.File[];
-      
+
       if (!files || files.length < 2) {
         throw new ApiError('At least two PDF files are required', StatusCodes.BAD_REQUEST, 'PDFController');
       }
 
-      const pdfBuffers = files.map(file => file.buffer);
+      const pdfBuffers = files.map((file) => file.buffer);
       const mergedPDF = await this.pdfService.mergePDFs(pdfBuffers);
 
       res.setHeader('Content-Type', 'application/pdf');

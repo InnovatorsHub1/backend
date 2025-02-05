@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
+
+import { ApiError } from '../core/errors/api.error';
 
 interface ValidationRules {
   headers?: string[];
@@ -17,7 +18,7 @@ export const createValidator = (rules: ValidationRules = {}) => {
 
     // Check headers
     if (rules.headers) {
-      rules.headers.forEach(header => {
+      rules.headers.forEach((header) => {
         if (!req.headers[header.toLowerCase()]) {
           // Separate auth errors from other validation errors
           if (AUTH_HEADERS.includes(header.toLowerCase())) {
@@ -31,7 +32,7 @@ export const createValidator = (rules: ValidationRules = {}) => {
 
     // Check query parameters
     if (rules.query) {
-      rules.query.forEach(param => {
+      rules.query.forEach((param) => {
         if (!req.query[param]) {
           validationErrors.push(`Missing required query param: ${param}`);
         }
@@ -40,7 +41,7 @@ export const createValidator = (rules: ValidationRules = {}) => {
 
     // Check body fields
     if (rules.body) {
-      rules.body.forEach(field => {
+      rules.body.forEach((field) => {
         if (!req.body[field]) {
           validationErrors.push(`Missing required body field: ${field}`);
         }
@@ -49,19 +50,11 @@ export const createValidator = (rules: ValidationRules = {}) => {
 
     // Handle errors
     if (authErrors.length > 0) {
-      throw new ApiError(
-        authErrors.join(', '), 
-        StatusCodes.UNAUTHORIZED, 
-        'Authentication'
-      );
+      throw new ApiError(authErrors.join(', '), StatusCodes.UNAUTHORIZED, 'Authentication');
     }
 
     if (validationErrors.length > 0) {
-      throw new ApiError(
-        validationErrors.join(', '), 
-        StatusCodes.BAD_REQUEST, 
-        'Validation'
-      );
+      throw new ApiError(validationErrors.join(', '), StatusCodes.BAD_REQUEST, 'Validation');
     }
 
     next();

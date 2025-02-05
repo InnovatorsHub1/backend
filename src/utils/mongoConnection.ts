@@ -28,6 +28,7 @@ class MongoConnection implements IMongoConnection {
     if (!this.instance) {
       this.instance = new MongoConnection();
     }
+
     return this.instance;
   }
 
@@ -44,6 +45,7 @@ class MongoConnection implements IMongoConnection {
 
   getClient(): MongoClient {
     if (!this.client) throw new Error('MongoClient is not initialized');
+
     return this.client;
   }
 }

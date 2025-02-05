@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
 import express, { Application } from 'express';
+import { RetryService } from '@gateway/services/retry.service';
 
 import { ValidationService } from '../validation/validation.service';
 import { HealthService } from '../../services/health.service';
@@ -14,10 +15,8 @@ import { PDFController } from '../../controllers/pdf.controller';
 import { PDFRoutes } from '../../routes/pdf.routes';
 
 import { TYPES } from './types';
-import { RetryService } from '@gateway/services/retry.service';
 
 const container = new Container({ defaultScope: 'Singleton' });
-
 
 // Create Express application instance
 const expressApp: Application = express();
@@ -34,6 +33,6 @@ container.bind<PDFService>(TYPES.PDFService).to(PDFService);
 container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
-container.bind<RetryService>(TYPES.RetryService).to(RetryService)
+container.bind<RetryService>(TYPES.RetryService).to(RetryService);
 
 export { container };

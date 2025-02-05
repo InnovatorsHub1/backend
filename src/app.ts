@@ -1,5 +1,8 @@
-import express, { Application } from 'express';
 import http from 'http';
+
+import express, { Application } from 'express';
+import { injectable, inject } from 'inversify';
+
 import { Routes } from './routes';
 import { config } from './config';
 import { WinstonLogger } from './core/logger/winston.logger';
@@ -7,7 +10,6 @@ import { setupSecurityMiddleware } from './middleware/security.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import { requestId } from './middleware/request-id.middleware';
 import { requestLogger } from './middleware/request-logger.middleware';
-import { injectable, inject } from 'inversify';
 import { TYPES } from './core/di/types';
 
 const logger = new WinstonLogger('App');
@@ -19,7 +21,7 @@ export class App {
 
   constructor(
     @inject(TYPES.Routes) private readonly routes: Routes,
-    @inject('Application') private readonly expressApp: Application
+    @inject('Application') private readonly expressApp: Application,
   ) {
     this.app = this.expressApp;
     this.setupMiddleware();

@@ -1,13 +1,11 @@
 import { StatusCodes } from 'http-status-codes';
-import { BaseError } from './base.error';
+
 import { IErrorResponse } from '../../types';
 
+import { BaseError } from './base.error';
+
 export class ApiError extends BaseError {
-  constructor(
-    message: string,
-    statusCode: number = StatusCodes.INTERNAL_SERVER_ERROR,
-    source: string
-  ) {
+  constructor(message: string, statusCode: number = StatusCodes.INTERNAL_SERVER_ERROR, source: string) {
     super(message, statusCode, source);
   }
 

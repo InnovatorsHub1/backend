@@ -1,4 +1,5 @@
 import request from 'supertest';
+
 import { App } from '../../src/app';
 import { config } from '../../src/config';
 import { container } from '../../src/core/di/container';
@@ -32,7 +33,7 @@ describe('Health Check API', () => {
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'healthy',
-        version: expect.any(String)
+        version: expect.any(String),
       });
     });
 

@@ -1,5 +1,6 @@
-import { WinstonLogger } from '../core/logger/winston.logger';
 import { injectable } from 'inversify';
+
+import { WinstonLogger } from '../core/logger/winston.logger';
 import { ApiError } from '../core/errors/api.error';
 
 enum CircuitBreakerState {
@@ -58,11 +59,7 @@ export class RetryService {
     }
   }
 
-  async retryOnFailure<T>(
-    operation: () => Promise<T>,
-    options: Partial<RetryOptions> = {},
-    operationId?: string
-  ): Promise<T> {
+  async retryOnFailure<T>(operation: () => Promise<T>, options: Partial<RetryOptions> = {}, operationId?: string): Promise<T> {
     this.validateOperation(operation);
 
     const normalizedOptions = this.normalizeRetryOptions(options);
@@ -79,10 +76,7 @@ export class RetryService {
 
         // ✅ Track successful attempts
         metrics.successfulAttempts++;
-        metrics.averageResponseTime = this.updateAverageTime(
-          metrics.averageResponseTime,
-          Date.now() - startTime
-        );
+        metrics.averageResponseTime = this.updateAverageTime(metrics.averageResponseTime, Date.now() - startTime);
 
         return result;
       } catch (error) {
@@ -94,18 +88,14 @@ export class RetryService {
         }
 
         if (attempt + 1 >= normalizedOptions.maxRetries + 1) {
-          throw new ApiError(
-            `Operation failed after ${attempt + 1} attempts`,
-            500,
-            'RetryService'
-          );
+          throw new ApiError(`Operation failed after ${attempt + 1} attempts`, 500, 'RetryService');
         }
 
         const delay = this.calculateDelay(attempt, normalizedOptions);
         this.logger.warn(`Retry attempt ${attempt + 1}/${normalizedOptions.maxRetries}`, {
           error,
           delay,
-          operationId: id
+          operationId: id,
         });
 
         await this.delay(delay);
@@ -113,18 +103,10 @@ export class RetryService {
       }
     }
 
-    throw new ApiError(
-      `Operation failed after ${normalizedOptions.maxRetries + 1} attempts`,
-      500,
-      'RetryService'
-    );
+    throw new ApiError(`Operation failed after ${normalizedOptions.maxRetries + 1} attempts`, 500, 'RetryService');
   }
 
-  async withCircuitBreaker<T>(
-    operation: () => Promise<T>,
-    options: Partial<CircuitBreakerOptions> = {},
-    operationId?: string
-  ): Promise<T> {
+  async withCircuitBreaker<T>(operation: () => Promise<T>, options: Partial<CircuitBreakerOptions> = {}, operationId?: string): Promise<T> {
     this.validateOperation(operation);
 
     const normalizedOptions = this.normalizeCircuitBreakerOptions(options);
@@ -156,10 +138,7 @@ export class RetryService {
       // ✅ Track successful attempts
       const metrics = this.getOrCreateMetrics(id);
       metrics.successfulAttempts++;
-      metrics.averageResponseTime = this.updateAverageTime(
-        metrics.averageResponseTime,
-        Date.now() - startTime
-      );
+      metrics.averageResponseTime = this.updateAverageTime(metrics.averageResponseTime, Date.now() - startTime);
 
       return result;
     } catch (error) {
@@ -175,7 +154,7 @@ export class RetryService {
         this.logger.error('Circuit breaker opened', {
           operationId: id,
           failures: breaker.failureCount,
-          totalBreaks: breaker.totalBreaks
+          totalBreaks: breaker.totalBreaks,
         });
 
         throw new ApiError('Circuit breaker is open', 503, 'RetryService');
@@ -192,16 +171,17 @@ export class RetryService {
   }
 
   /**
- * Retrieves or creates a circuit breaker for a given operation.
- */
-private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
+   * Retrieves or creates a circuit breaker for a given operation.
+   */
+  private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
     if (!this.circuitBreakers.has(id)) {
       this.circuitBreakers.set(id, {
         state: CircuitBreakerState.CLOSED,
         failureCount: 0,
-        totalBreaks: 0
+        totalBreaks: 0,
       });
     }
+
     return this.circuitBreakers.get(id)!;
   }
 
@@ -210,35 +190,31 @@ private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
       maxRetries: Math.max(0, options.maxRetries ?? RetryService.DEFAULT_MAX_RETRIES),
       delay: this.normalizeDelay(options.delay ?? RetryService.DEFAULT_DELAY),
       exceptions: options.exceptions ?? [Error],
-      strategy: options.strategy ?? 'linear'
+      strategy: options.strategy ?? 'linear',
     };
   }
 
   /**
- * Ensures the delay is within the allowed range.
- */
-   private normalizeDelay(delay: number): number {
-    return Math.max(
-      RetryService.MIN_DELAY,
-      Math.min(delay, RetryService.MAX_DELAY)
-    );
+   * Ensures the delay is within the allowed range.
+   */
+  private normalizeDelay(delay: number): number {
+    return Math.max(RetryService.MIN_DELAY, Math.min(delay, RetryService.MAX_DELAY));
   }
-  
 
   private normalizeCircuitBreakerOptions(options: Partial<CircuitBreakerOptions>): CircuitBreakerOptions {
     return {
       failureThreshold: Math.max(1, options.failureThreshold ?? RetryService.DEFAULT_THRESHOLD),
-      resetTimeout: Math.max(1000, options.resetTimeout ?? RetryService.DEFAULT_RESET_TIMEOUT)
+      resetTimeout: Math.max(1000, options.resetTimeout ?? RetryService.DEFAULT_RESET_TIMEOUT),
     };
   }
 
   /**
- * Generates a unique operation ID for tracking.
- */
-private generateOperationId(): string {
+   * Generates a unique operation ID for tracking.
+   */
+  private generateOperationId(): string {
     return `op_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   }
-  
+
   /**
    * Retrieves or creates retry metrics for a given operation.
    */
@@ -248,34 +224,37 @@ private generateOperationId(): string {
         totalAttempts: 0,
         successfulAttempts: 0,
         failedAttempts: 0,
-        averageResponseTime: 0
+        averageResponseTime: 0,
       });
     }
+
     return this.metrics.get(id)!;
   }
-  
 
   private calculateDelay(attempt: number, options: RetryOptions): number {
     const baseDelay = options.delay;
     switch (options.strategy) {
-        case 'linear':
-            return baseDelay;
-        case 'exponential':
-            return Math.min(baseDelay * Math.pow(2, attempt), RetryService.MAX_DELAY);
-        case 'random':
-            const randomFactor = Math.random() * (1.5 - 0.5) + 0.5;
-            return Math.min(baseDelay * randomFactor, RetryService.MAX_DELAY);
-        default:
-            return baseDelay;
+      case 'linear':
+        return baseDelay;
+      case 'exponential':
+        return Math.min(baseDelay * Math.pow(2, attempt), RetryService.MAX_DELAY);
+      case 'random': {
+        const randomFactor = Math.random() * (1.5 - 0.5) + 0.5;
+
+        return Math.min(baseDelay * randomFactor, RetryService.MAX_DELAY);
+      }
+
+      default:
+        return baseDelay;
     }
-}
+  }
 
   private shouldRetry(error: unknown, exceptions: Array<new (...args: any[]) => Error>): boolean {
-    return exceptions.some(Exception => error instanceof Exception);
+    return exceptions.some((Exception) => error instanceof Exception);
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private updateAverageTime(currentAvg: number, newValue: number): number {
@@ -288,10 +267,8 @@ private generateOperationId(): string {
       operations: Array.from(this.metrics.entries()).map(([id, metrics]) => ({
         id,
         ...metrics,
-        successRate: metrics.totalAttempts > 0 
-          ? (metrics.successfulAttempts / metrics.totalAttempts) * 100 
-          : 0
-      }))
+        successRate: metrics.totalAttempts > 0 ? (metrics.successfulAttempts / metrics.totalAttempts) * 100 : 0,
+      })),
     });
   }
 

@@ -10,25 +10,33 @@ export const StandardValidators: Record<string, ValidatorFn> = {
   },
 
   email: (value: ValidationValue): ValidatorResult => {
-    if (typeof value !== 'string') {return false;}
+    if (typeof value !== 'string') {
+      return false;
+    }
 
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   },
 
   min: (value: ValidationValue, params?: ValidatorParams): ValidatorResult => {
-    if (typeof value !== 'number' || !params?.min) {return false;}
-    
+    if (typeof value !== 'number' || !params?.min) {
+      return false;
+    }
+
     return value >= params.min;
   },
 
   max: (value: ValidationValue, params?: ValidatorParams): ValidatorResult => {
-    if (typeof value !== 'number' || !params?.max) {return false;}
+    if (typeof value !== 'number' || !params?.max) {
+      return false;
+    }
 
     return value <= params.max;
   },
 
   regex: (value: ValidationValue, params?: ValidatorParams): ValidatorResult => {
-    if (typeof value !== 'string' || !params?.pattern) {return false;}
+    if (typeof value !== 'string' || !params?.pattern) {
+      return false;
+    }
 
     return params.pattern.test(value);
   },
@@ -47,5 +55,5 @@ export const StandardValidators: Record<string, ValidatorFn> = {
 
   object: (value: ValidationValue): ValidatorResult => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
-  },
+  }
 };

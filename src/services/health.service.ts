@@ -1,5 +1,6 @@
-import { WinstonLogger } from '../core/logger/winston.logger';
 import { injectable } from 'inversify';
+
+import { WinstonLogger } from '../core/logger/winston.logger';
 
 export interface IHealthCheck {
   status: string;
@@ -11,18 +12,17 @@ export interface IHealthCheck {
     total: number;
     rss: number;
   };
- }
- 
+}
 
- @injectable()
- export class HealthService {
+@injectable()
+export class HealthService {
   private logger = new WinstonLogger('HealthService');
- 
+
   async checkHealth(): Promise<IHealthCheck> {
     this.logger.info('Performing health check');
-    
+
     const memory = process.memoryUsage();
-    
+
     return {
       status: 'healthy',
       uptime: process.uptime(),
@@ -31,8 +31,8 @@ export interface IHealthCheck {
       memory: {
         used: memory.heapUsed,
         total: memory.heapTotal,
-        rss: memory.rss
-      }
+        rss: memory.rss,
+      },
     };
   }
- }
+}

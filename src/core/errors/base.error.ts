@@ -1,5 +1,5 @@
 import { StatusCodes } from 'http-status-codes';
-import { IErrorResponse } from "@gateway/types";
+import { IErrorResponse } from '@gateway/types';
 
 export abstract class BaseError extends Error {
   public readonly statusCode: number;

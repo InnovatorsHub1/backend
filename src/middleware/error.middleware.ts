@@ -1,19 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
+
 import { BaseError } from '../core/errors/base.error';
 import { ApiError } from '../core/errors/api.error';
 import { WinstonLogger } from '../core/logger/winston.logger';
 
 const logger = new WinstonLogger('ErrorMiddleware');
 
-export const errorMiddleware = (
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  logger.error('Error encountered:', { 
-    error: error.message, 
+export const errorMiddleware = (error: Error, req: Request, res: Response, next: NextFunction): void => {
+  logger.error('Error encountered:', {
+    error: error.message,
     stack: error.stack,
     path: req.path,
     method: req.method
@@ -21,6 +17,7 @@ export const errorMiddleware = (
 
   if (error instanceof BaseError) {
     res.status(error.statusCode).json(error.serializeError());
+
     return;
   }
 
@@ -31,6 +28,7 @@ export const errorMiddleware = (
       status: 'error',
       source: 'ErrorMiddleware'
     });
+
     return;
   }
 
@@ -41,16 +39,12 @@ export const errorMiddleware = (
       status: 'error',
       source: 'ErrorMiddleware'
     });
+
     return;
   }
 
   // Catch all for unhandled errors
-  const internalError = new ApiError(
-    'Internal Server Error',
-    StatusCodes.INTERNAL_SERVER_ERROR,
-    'ErrorMiddleware'
-  );
+  const internalError = new ApiError('Internal Server Error', StatusCodes.INTERNAL_SERVER_ERROR, 'ErrorMiddleware');
 
-  res.status(StatusCodes.INTERNAL_SERVER_ERROR)
-    .json(internalError.serializeError());
+  res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(internalError.serializeError());
 };

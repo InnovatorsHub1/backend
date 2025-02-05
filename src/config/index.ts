@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+
 import { IConfig } from '../types';
 
 dotenv.config();
@@ -17,7 +18,7 @@ const getConfig = (): IConfig => ({
   jwtPublicKeyPath: process.env.JWT_PUBLIC_KEY_PATH,
   jwtPrivateKeyPath: process.env.JWT_PRIVATE_KEY_PATH,
   jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
-  jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h',
+  jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h'
 });
 
 const validateConfig = (config: IConfig): void => {

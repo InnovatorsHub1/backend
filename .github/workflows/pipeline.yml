@@ -37,9 +37,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-      - name: Wait for MongoDB
-        run: |
-            timeout 30 bash -c 'until mongosh --eval "db.runCommand({ping:1})" --quiet; do sleep 1; done'
   
       - name: Install dependencies
         run: npm install

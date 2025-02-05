@@ -1,4 +1,4 @@
-name: Deploy Backend to ECR
+name: Deploy Backend to AWS ECR
 
 on:
     push:

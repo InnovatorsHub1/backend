@@ -1,9 +1,8 @@
 name: Deploy Backend to AWS ECR
 
 on:
-    push:
-      branches: [master]
     pull_request:
+      types: [closed]
       branches: [master]
 
 jobs:

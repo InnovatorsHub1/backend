@@ -50,7 +50,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          ECR_REGISTRY=$(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/
+          ECR_REGISTRY=$(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
           IMAGE_TAG=${{ github.event.pull_request.number }}
           
           docker build \
@@ -81,3 +81,5 @@ jobs:
             --build-arg MAX_TASKS_PER_CHILD=${{ secrets.MAX_TASKS_PER_CHILD }} \
             -t $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG .
           docker push $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/autodocs-backend-repo:$IMAGE_TAG $ECR_REGISTRY/autodocs-backend-repo:latest
+          docker push $ECR_REGISTRY/autodocs-backend-repo:latest

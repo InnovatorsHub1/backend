@@ -7,7 +7,12 @@ export type RefreshTokenPayload = {
     jti: string;
 };
 
-export type AccessTokenPayload = Omit<RefreshTokenPayload, 'jti'>;
+export interface AccessTokenPayload {
+    sub: string;
+    deviceInfo?: any;
+    role: string
+    exp?: number;
+}
 
 export interface JtiDocument extends BaseDocument {
     Jti: string;

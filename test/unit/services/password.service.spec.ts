@@ -1,4 +1,4 @@
-import { PasswordService } from '@gateway/services/password/password.service';
+import { PasswordService } from '@gateway/services/auth/password.service';
 import { ApiError } from '@gateway/core/errors/api.error';
 import * as bcrypt from 'bcrypt';
 

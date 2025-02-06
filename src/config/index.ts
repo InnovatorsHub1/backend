@@ -18,7 +18,10 @@ const getConfig = (): IConfig => ({
   jwtPublicKeyPath: process.env.JWT_PUBLIC_KEY_PATH,
   jwtPrivateKeyPath: process.env.JWT_PRIVATE_KEY_PATH,
   jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
-  jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h'
+  jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h',
+  googleClientID: process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  googleCallbackURL: `${process.env.BASE_URL}/auth/google/callback` || '',
 });
 
 const validateConfig = (config: IConfig): void => {

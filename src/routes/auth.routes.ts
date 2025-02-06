@@ -1,38 +1,26 @@
-// import { Router } from 'express';
-import { injectable } from 'inversify';
-// import passport from 'passport';
+import { Router } from 'express';
+import { injectable, inject } from 'inversify';
+import { createValidator } from '@gateway/middleware/validate-request.middleware';
 
-// import { TYPES } from '../core/di/types';
-// import { AuthController } from '../controllers/auth.controller';
+import { TYPES } from '../core/di/types';
+import { AuthController } from '../controllers/auth.controller';
 
 @injectable()
 export class AuthRoutes {
-  // public router: Router;
+  public router: Router;
 
-  // constructor(@inject(TYPES.AuthController) private readonly controller: AuthController) {
-  //   this.router = Router();
-  //   // this.setupRoutes();
-  // }
+  constructor(@inject(TYPES.AuthController) private readonly controller: AuthController) {
+    this.router = Router();
+    this.setupRoutes();
+  }
 
-  // private setupRoutes(): void {
-  //   // Google OAuth routes
-  //   this.router.get(
-  //     '/google',
-  //     passport.authenticate('google', {
-  //       scope: ['profile', 'email'],
-  //       session: true,
-  //     }),
-  //   );
+  private setupRoutes(): void {
+    const googleCheckValidator = createValidator({
+      headers: ['x-api-key'],
+      query: ['version'],
+    });
 
-  //   this.router.get(
-  //     '/google/callback',
-  //     passport.authenticate('google', {
-  //       failureRedirect: `${process.env.FRONTEND_URL}/login`,
-  //       session: true,
-  //     }),
-  //     this.controller.googleCallback.bind,
-  //   );
-
-  //   this.router.get('/logout', this.controller.logout.bind);
-  // }
+    this.router.post('/google', googleCheckValidator, this.controller.googleGenerateAuthUrl.bind(this.controller));
+    this.router.get('/google/user-data/:accessToken', googleCheckValidator, this.controller.getUserDataByAccessToken.bind(this.controller));
+  }
 }

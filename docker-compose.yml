@@ -1,29 +1,29 @@
 version: '3.8'
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: development
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - coverage_data:/tmp/coverage
-    environment:
-      NODE_ENV: development
-      MONGO_URI: mongodb://admin:password@mongodb:27017/test?authSource=admin
-      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
-    security_opt:
-      - seccomp=unconfined
-    cap_add:
-      - SYS_ADMIN
-    shm_size: '1gb'
-    command: npm run dev
-    depends_on:
-      - mongodb
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     args:
+  #       NODE_ENV: development
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - .:/app
+  #     - /app/node_modules
+  #     - coverage_data:/tmp/coverage
+  #   environment:
+  #     NODE_ENV: development
+  #     MONGO_URI: mongodb://admin:password@mongodb:27017/test?authSource=admin
+  #     PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+  #   security_opt:
+  #     - seccomp=unconfined
+  #   cap_add:
+  #     - SYS_ADMIN
+  #   shm_size: '1gb'
+  #   command: npm run dev
+  #   depends_on:
+  #     - mongodb
 
   mongodb:
     image: mongo:6.0

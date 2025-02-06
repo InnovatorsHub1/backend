@@ -1,11 +1,12 @@
+import fs from 'fs';
+import { generateKeyPairSync } from 'crypto';
+
 import { JwtService } from '@gateway/services/jwt';
 import { AccessTokenPayload, RefreshTokenPayload } from '@gateway/services/jwt/types';
 import { sign, verify } from 'jsonwebtoken';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
-import fs from 'fs';
-import { generateKeyPairSync } from 'crypto';
 
 jest.mock('fs');
 jest.mock('@gateway/utils/mongoConnection');
@@ -14,8 +15,8 @@ jest.mock('@gateway/config', () => ({
         jwtPublicKeyPath: '/path/to/public.key',
         jwtPrivateKeyPath: '/path/to/private.key',
         jwtAccessExpiration: '1h',
-        jwtRefreshExpiration: '7d'
-    }
+        jwtRefreshExpiration: '7d',
+    },
 }));
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
@@ -26,7 +27,7 @@ describe('JwtService', () => {
     const { publicKey, privateKey } = generateKeyPairSync('rsa', {
         modulusLength: 2048,
         publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     });
 
     beforeEach(() => {
@@ -43,15 +44,15 @@ describe('JwtService', () => {
             findOne: jest.fn().mockResolvedValue(null),
             insertOne: jest.fn().mockResolvedValue({ acknowledged: true }),
             deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-            countDocuments: jest.fn().mockResolvedValue(0)
+            countDocuments: jest.fn().mockResolvedValue(0),
         };
 
         const mockDb = {
-            collection: jest.fn().mockReturnValue(mockCollection)
+            collection: jest.fn().mockReturnValue(mockCollection),
         };
 
         mockedMongoConnection.getClient = jest.fn().mockReturnValue({
-            db: () => mockDb
+            db: () => mockDb,
         });
 
         jwtService = new JwtService(mockedMongoConnection);
@@ -61,7 +62,7 @@ describe('JwtService', () => {
         it('should generate a valid refresh token and store in whitelist', async () => {
             const payload: Omit<RefreshTokenPayload, 'exp' | 'jti'> = {
                 sub: 'user123',
-                role: 'user'
+                role: 'user',
             };
 
             const token = await jwtService.generateRefreshToken(payload as RefreshTokenPayload);
@@ -79,7 +80,7 @@ describe('JwtService', () => {
 
             await expect(jwtService.generateRefreshToken({
                 sub: 'user123',
-                role: 'user'
+                role: 'user',
             } as RefreshTokenPayload)).rejects.toThrow(new ApiError('JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR, 'JwtService'));
         });
     });
@@ -93,7 +94,7 @@ describe('JwtService', () => {
                 sub: 'user123',
                 role: 'user',
                 jti: 'test-jti',
-                exp: Math.floor(Date.now() / 1000) + 3600
+                exp: Math.floor(Date.now() / 1000) + 3600,
             };
             const token = sign(payload, privateKey, { algorithm: 'RS256' });
 
@@ -107,7 +108,7 @@ describe('JwtService', () => {
                 sub: 'user123',
                 role: 'user',
                 jti: 'test-jti',
-                exp: Math.floor(Date.now() / 1000) + 3600
+                exp: Math.floor(Date.now() / 1000) + 3600,
             };
             const token = sign(payload, privateKey, { algorithm: 'RS256' });
 
@@ -139,7 +140,7 @@ describe('JwtService', () => {
             const payload: AccessTokenPayload = {
                 sub: 'user123',
                 role: 'user',
-                exp: Math.floor(Date.now() / 1000) + 3600
+                exp: Math.floor(Date.now() / 1000) + 3600,
             };
 
             expect(() => jwtService.generateToken(payload))
@@ -170,7 +171,7 @@ describe('JwtService', () => {
         const collection = jwtService['jtiCollection']();
         expect(collection.createIndex).toHaveBeenCalledWith(
             { expiresAt: 1 },
-            { expireAfterSeconds: 0, background: true }
+            { expireAfterSeconds: 0, background: true },
         );
     });
 
@@ -248,10 +249,10 @@ describe('JwtService', () => {
                     sub: 'user123',
                     role: 'user',
                     jti: 'test-jti',
-                    exp: Math.floor(Date.now() / 1000) + 3600
+                    exp: Math.floor(Date.now() / 1000) + 3600,
                 },
                 privateKey,
-                { algorithm: 'RS256' }
+                { algorithm: 'RS256' },
             );
 
             await expect(jwtService.refreshTokens(refreshToken))
@@ -276,7 +277,7 @@ describe('JwtService', () => {
             const expiredToken = sign(
                 { sub: 'user123', role: 'user' },
                 privateKey,
-                { algorithm: 'RS256', expiresIn: '-1h' }
+                { algorithm: 'RS256', expiresIn: '-1h' },
             );
 
             expect(() => jwtService.verifyToken(expiredToken))
@@ -290,7 +291,7 @@ describe('JwtService', () => {
             const token = sign(
                 { sub: 'user123', role: 'user', jti: 'test-jti' },
                 privateKey,
-                { algorithm: 'RS256' }
+                { algorithm: 'RS256' },
             );
 
             await expect(jwtService.verifyRefreshToken(token))
@@ -305,7 +306,7 @@ describe('JwtService', () => {
 
             await expect(jwtService.generateRefreshToken({
                 sub: 'user123',
-                role: 'user'
+                role: 'user',
             } as RefreshTokenPayload)).resolves.toBeDefined();
         });
     });

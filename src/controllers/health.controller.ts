@@ -11,7 +11,7 @@ import { TYPES } from '../core/di/types';
 export class HealthController {
   private logger = new WinstonLogger('HealthController');
 
-  constructor(@inject(TYPES.HealthService) private readonly healthService: HealthService) {}
+  constructor(@inject(TYPES.HealthService) private readonly healthService: HealthService) { }
 
   async check(req: Request, res: Response): Promise<void> {
     try {

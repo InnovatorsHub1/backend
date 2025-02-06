@@ -46,13 +46,13 @@ describe('ValidationService', () => {
         type: 'string',
         rules: [{ name: 'nonexistentValidator' }],
       };
-    
+
       const result = validationService.validate('test-value', schema);
-    
+
       expect(result.isValid).toBe(true);
       expect(mockLogger.warn).toHaveBeenCalledWith('Validator nonexistentValidator not found');
     });
-    
+
   });
 
   describe('Complex Validation', () => {
@@ -116,7 +116,7 @@ describe('ValidationService', () => {
           }, 100);
         });
       };
-      
+
       validationService.addAsyncRule('mockAsync', mockAsyncValidator);
 
       const schema: ValidationSchema = {
@@ -139,7 +139,7 @@ describe('ValidationService', () => {
           }, 100);
         });
       };
-      
+
       validationService.addAsyncRule('mockAsync', mockAsyncValidator);
 
       const schema: ValidationSchema = {
@@ -161,7 +161,7 @@ describe('ValidationService', () => {
     it('should handle multiple async rules', async () => {
       const successValidator: AsyncValidatorFn = async () => Promise.resolve(true);
       const failureValidator: AsyncValidatorFn = async () => Promise.resolve(false);
-      
+
       validationService.addAsyncRule('asyncSuccess', successValidator);
       validationService.addAsyncRule('asyncFail', failureValidator);
 

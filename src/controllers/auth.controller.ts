@@ -5,7 +5,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from '../core/di/types';
 import { AuthService } from '../services/auth.service';
 import { WinstonLogger } from '../core/logger/winston.logger';
-import { GoogleUser, AuthResponse } from '../types/auth.types';
+import { GoogleUser } from '../types/auth.types';
 import { ApiError } from '../core/errors/api.error';
 
 interface RequestWithUser extends Request {
@@ -17,55 +17,24 @@ export class AuthController {
   private logger = new WinstonLogger('AuthController');
 
   constructor(@inject(TYPES.AuthService) private readonly authService: AuthService) { }
-
-  googleCallback = async (req: RequestWithUser, res: Response): Promise<void> => {
+  googleGenerateAuthUrl = async (_req: RequestWithUser, res: Response): Promise<void> => {
     try {
-      if (req.user) {
-        const user = await this.authService.validateOrCreateUser(req.user);
-        req.session.user = user;
-
-        const response: AuthResponse = {
-          success: true,
-          data: {
-            user,
-            redirectUrl: '/dashboard',
-          },
-        };
-
-        res.status(StatusCodes.OK).json(response);
-      } else {
-        throw new ApiError('Authentication failed', StatusCodes.UNAUTHORIZED, 'AuthController');
-      }
+      const authUrl = await this.authService.generateAuthUrl();
+      res.status(StatusCodes.CREATED).json(authUrl);
     } catch (error) {
-      this.logger.error('Google callback failed', error);
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        error: 'Authentication failed',
-      });
+      this.logger.error('Health check failed', error);
+      throw new ApiError('Health check failed', StatusCodes.INTERNAL_SERVER_ERROR, 'HealthController');
     }
   };
 
-  logout = async (req: RequestWithUser, res: Response): Promise<void> => {
+  getUserDataByAccessToken = async (req: RequestWithUser, res: Response): Promise<void> => {
+    const { accessToken } = req.params;
     try {
-      if (req.user?.googleId) {
-        await this.authService.isUserAuthenticated(req.user.googleId);
-      }
-
-      req.session.destroy((err) => {
-        if (err) {
-          throw new ApiError('Logout failed', 500, 'AuthController');
-        }
-        res.status(StatusCodes.OK).json({
-          success: true,
-          message: 'Logged out successfully',
-        });
-      });
+      const userData = await this.authService.getUserData(accessToken);
+      res.status(StatusCodes.OK).json(userData);
     } catch (error) {
-      this.logger.error('Logout failed', error);
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        error: 'Logout failed',
-      });
+      this.logger.error('Health check failed', error);
+      throw new ApiError('Health check failed', StatusCodes.INTERNAL_SERVER_ERROR, 'HealthController');
     }
   };
 }

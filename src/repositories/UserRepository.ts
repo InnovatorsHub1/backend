@@ -5,6 +5,13 @@ import { User } from '../types/user.types';
 
 import { BaseRepository } from './BaseRepository';
 
+interface GoogleProfile {
+  googleId: string;
+  email: string;
+  name: string;
+  picture?: string
+}
+
 @injectable()
 export class UserRepository extends BaseRepository<User> {
   constructor(collection: Collection<User>) {
@@ -19,14 +26,14 @@ export class UserRepository extends BaseRepository<User> {
     return this.findOne({ email } as Filter<User>);
   }
 
-  async upsertGoogleUser(googleProfile: { googleId: string; email: string; name: string; picture?: string }): Promise<User> {
+  async upsertGoogleUser(googleProfile: GoogleProfile): Promise<User> {
     const existingUser = await this.findByGoogleId(googleProfile.googleId);
 
     if (existingUser) {
       const updated = await this.update(existingUser._id!.toString(), {
         name: googleProfile.name,
         picture: googleProfile.picture,
-        lastLogin: new Date()
+        lastLogin: new Date(),
       });
 
       return updated!;
@@ -36,7 +43,7 @@ export class UserRepository extends BaseRepository<User> {
       ...googleProfile,
       isActive: true,
       isDeleted: false,
-      lastLogin: new Date()
+      lastLogin: new Date(),
     });
   }
 }

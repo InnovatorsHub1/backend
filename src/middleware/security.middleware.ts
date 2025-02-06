@@ -13,17 +13,17 @@ export const setupSecurityMiddleware = (app: Application): void => {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:']
-        }
+          defaultSrc: ['\'self\''],
+          scriptSrc: ['\'self\'', '\'unsafe-inline\''],
+          styleSrc: ['\'self\'', '\'unsafe-inline\''],
+          imgSrc: ['\'self\'', 'data:', 'https:'],
+        },
       },
       crossOriginEmbedderPolicy: true,
       crossOriginOpenerPolicy: { policy: 'same-origin' },
       crossOriginResourcePolicy: { policy: 'same-site' },
-      hidePoweredBy: true
-    })
+      hidePoweredBy: true,
+    }),
   );
 
   // CORS configuration
@@ -33,8 +33,8 @@ export const setupSecurityMiddleware = (app: Application): void => {
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-      maxAge: 86400 // 24 hours
-    })
+      maxAge: 86400, // 24 hours
+    }),
   );
 
   // Compression
@@ -44,7 +44,7 @@ export const setupSecurityMiddleware = (app: Application): void => {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later'
+    message: 'Too many requests from this IP, please try again later',
   });
   app.use(limiter);
 
@@ -56,8 +56,8 @@ export const setupSecurityMiddleware = (app: Application): void => {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       secure: config.nodeEnv === 'production',
       sameSite: 'lax',
-      httpOnly: true
-    })
+      httpOnly: true,
+    }),
   );
 
   // Trust proxy if behind reverse proxy

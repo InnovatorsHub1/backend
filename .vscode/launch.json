@@ -4,7 +4,13 @@
         "command": "npm run dev",
         "name": "Run npm dev",
         "request": "launch",
-        "type": "node-terminal"
+        "cwd": "${workspaceFolder}",
+        "type": "node-terminal",
+        "outputCapture": "std",
+        "sourceMaps": true,
+        "env": {
+            "NODE_ENV": "development"
+        }
     }
     ]
 }

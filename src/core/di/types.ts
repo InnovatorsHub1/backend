@@ -13,5 +13,5 @@ export const TYPES = {
   AuthController: Symbol.for('AuthController'),
   AuthRoutes: Symbol.for('AuthRoutes'),
   UserRepository: Symbol.for('UserRepository'),
-  RetryService: Symbol.for('RetryService')
+  RetryService: Symbol.for('RetryService'),
 };

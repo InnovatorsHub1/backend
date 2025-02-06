@@ -1,5 +1,8 @@
 import { injectable, inject } from 'inversify';
+import { OAuth2Client } from 'google-auth-library';
+import axios from 'axios';
 
+import { config } from '../config/index';
 import { WinstonLogger } from '../core/logger/winston.logger';
 import { ApiError } from '../core/errors/api.error';
 import { GoogleUser } from '../types/auth.types';
@@ -8,36 +11,48 @@ import { TYPES } from '../core/di/types';
 
 @injectable()
 export class AuthService {
-  private logger = new WinstonLogger('AuthService');
+  private readonly logger = new WinstonLogger('AuthService');
 
-  constructor(@inject(TYPES.UserRepository) private userRepository: UserRepository) {}
+  constructor(@inject(TYPES.UserRepository) private userRepository: UserRepository) { }
 
-  async validateOrCreateUser(profile: any): Promise<GoogleUser> {
+  async generateAuthUrl(): Promise<string> {
+    this.logger.info('Attempting to generate auth url');
     try {
-      this.logger.info('Processing Google profile', { profileId: profile.id });
+      const oAuth2Client = new OAuth2Client(
+        config.googleClientID,
+        config.googleClientSecret,
+        config.googleCallbackURL,
+      );
 
-      const user = await this.userRepository.upsertGoogleUser({
-        googleId: profile.id,
-        email: profile.emails[0].value,
-        name: profile.displayName,
-        picture: profile.photos?.[0]?.value
+      const authorizeUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline', // make sure refresh token always sent.
+        scope: 'https://www.googleapis.com/auth/userinfo.profile openid',
+        prompt: 'conset',
       });
+      this.logger.info('Generate an authorization url has been Successfully created');
 
-      return {
-        googleId: user.googleId,
-        email: user.email,
-        name: user.name,
-        picture: user.picture
-      };
+      return authorizeUrl;
     } catch (error) {
-      this.logger.error('Google authentication failed', error);
-      throw new ApiError('Authentication failed', 500, 'AuthService');
+      this.logger.error('Generate an authorization url failed');
+      throw new ApiError('Generate an authorization url failed', 500, 'AuthService');
     }
   }
 
-  async isUserAuthenticated(googleId: string): Promise<boolean> {
-    const user = await this.userRepository.findByGoogleId(googleId);
+  async getUserData(accessToken: string): Promise<void> {
+    this.logger.info('Getting User data');
+    try {
+      const { data } = await axios({
+        method: 'GET',
+        url: `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`,
+      });
 
-    return !!(user && user.isActive);
+      console.log(data);
+
+      return data;
+    } catch (error) {
+      this.logger.error('Fetch User data failed');
+      throw new ApiError('Fetch User data failed', 500, 'AuthService');
+    }
+
   }
 }

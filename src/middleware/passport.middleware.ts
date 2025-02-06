@@ -5,7 +5,7 @@ import { TYPES } from '@gateway/core/di/types';
 import { container } from '../core/di/container';
 import { AuthService } from '../services/auth.service';
 import { WinstonLogger } from '../core/logger/winston.logger';
-// import { GoogleUser } from '../types/auth.types';
+import { GoogleUser } from '../types/auth.types';
 
 const logger = new WinstonLogger('PassportMiddleware');
 
@@ -17,16 +17,20 @@ export const setupPassport = () => {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         callbackURL: `${process.env.BASE_URL}/auth/google/callback`,
       },
-      async (accessToken, refreshToken, profile, done) => {
+      async (_accessToken, _refreshToken, profile, done) => {
         try {
           logger.info('Google authentication callback received', {
             profileId: profile.id,
           });
 
-          const authService = container.get<AuthService>(TYPES.AuthService);
-          const user = await authService.validateOrCreateUser(profile);
+          const googleUser: GoogleUser = {
+            googleId: profile.id,
+            email: profile.emails?.[0]?.value || '',
+            name: profile.displayName,
+            picture: profile.photos?.[0]?.value,
+          };
 
-          return done(null, user);
+          return done(null, googleUser);
         } catch (error) {
           logger.error('Google strategy error', error);
 
@@ -36,9 +40,10 @@ export const setupPassport = () => {
     ),
   );
 
-  // passport.serializeUser((user: GoogleUser, done) => {
-  //   done(null, user.googleId);
-  // });
+  passport.serializeUser((user: Express.User | GoogleUser, done) => {
+    const googleUser = user as GoogleUser;
+    done(null, googleUser.googleId);
+  });
 
   passport.deserializeUser(async (googleId: string, done) => {
     try {

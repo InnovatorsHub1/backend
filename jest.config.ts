@@ -4,7 +4,7 @@ const config: Config.InitialOptions = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   verbose: true,
-  coverageDirectory: '/tmp/coverage',  
+  coverageDirectory: '/tmp/coverage',
   collectCoverage: true,
   testPathIgnorePatterns: ['/node_modules/'],
   transform: {
@@ -12,30 +12,30 @@ const config: Config.InitialOptions = {
       tsconfig: 'tsconfig.json',
       compiler: 'typescript',
       diagnostics: {
-        ignoreCodes: [151001]
-      }
-    }]
+        ignoreCodes: [151001],
+      },
+    }],
   },
-  testMatch: ['<rootDir>/test/**/*.ts'],
+  testMatch: ['<rootDir>/test/**/*.spec.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!test/**/*.ts?(x)',
-    '!**/node_modules/**'
+    '!**/node_modules/**',
   ],
   coverageThreshold: {
     global: {
       branches: 1,
       functions: 1,
       lines: 1,
-      statements: 1
-    }
+      statements: 1,
+    },
   },
-  coverageReporters: ['text', 'text-summary'], 
+  coverageReporters: ['text', 'text-summary'],
   moduleNameMapper: {
     '^@gateway/(.*)$': '<rootDir>/src/$1',
   },
   setupFiles: ['reflect-metadata'],
-  moduleFileExtensions: ['ts', 'js', 'json']
+  moduleFileExtensions: ['ts', 'js', 'json'],
 };
 
 export default config;

@@ -1,16 +1,16 @@
 import { type BaseDocument } from "@gateway/repositories/BaseRepository";
 
-export type RefreshTokenPayload = {
+export interface RefreshTokenPayload {
     sub: string;
-    role: string;
-    exp: number;
-    jti: string;
-};
+    permissions: string[];
+    exp?: number;
+    jti?: string;
+}
 
 export interface AccessTokenPayload {
     sub: string;
     deviceInfo?: any;
-    role: string
+    permissions: string[];
     exp?: number;
 }
 

@@ -6,13 +6,14 @@ import { ApiError } from '@gateway/core/errors/api.error';
 import { ObjectId } from 'mongodb';
 import { StatusCodes } from 'http-status-codes';
 import { ICredentialsUser, ISSOUser } from '@gateway/repositories/user/IUser';
-
+import { JwtService } from '@gateway/services/jwt';
+import { DeviceInfo } from '@gateway/services/auth/types';
 describe('AuthService', () => {
     let authService: AuthService;
     let userRepository: jest.Mocked<UserRepository>;
     let passwordService: jest.Mocked<PasswordService>;
     let sessionService: jest.Mocked<SessionService>;
-
+    let jwtService: jest.Mocked<JwtService>;
     beforeEach(() => {
         userRepository = {
             findByEmail: jest.fn(),
@@ -29,7 +30,13 @@ describe('AuthService', () => {
             createSession: jest.fn()
         } as any;
 
-        authService = new AuthService(userRepository, passwordService, sessionService);
+        jwtService = {
+            generateToken: jest.fn(),
+            generateRefreshToken: jest.fn(),
+            verifyRefreshToken: jest.fn()
+        } as any;
+
+        authService = new AuthService(userRepository, passwordService, sessionService, jwtService);
     });
 
     describe('login', () => {
@@ -43,7 +50,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -53,9 +60,13 @@ describe('AuthService', () => {
 
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(true);
-            sessionService.createSession.mockResolvedValue('token');
+            sessionService.createSession.mockResolvedValue({
+                accessToken: 'token',
+                refreshToken: 'refreshToken',
+                id: mockUser._id!.toString()
+            });
 
-            await authService.login('test@example.com', 'password123');
+            await authService.login('test@example.com', 'Password123@');
 
             expect(userRepository.resetFailedAttempts).toHaveBeenCalled();
             expect(userRepository.updateLastLogin).toHaveBeenCalled();
@@ -65,7 +76,7 @@ describe('AuthService', () => {
         it('should throw on user not found', async () => {
             userRepository.findByEmail.mockResolvedValue(null);
 
-            await expect(authService.login('wrong@example.com', 'password123'))
+            await expect(authService.login('wrong@example.com', 'Password123@'))
                 .rejects
                 .toThrow(new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService'));
         });
@@ -80,7 +91,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -88,9 +99,9 @@ describe('AuthService', () => {
                 updatedAt: new Date()
             };
 
-            userRepository.findByEmail.mockResolvedValue(ssoUser);
+            userRepository.findByEmail.mockResolvedValue(ssoUser as unknown as ICredentialsUser);
 
-            await expect(authService.login('test@example.com', 'password123'))
+            await expect(authService.login('test@example.com', 'Password123@'))
                 .rejects
                 .toThrow(new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService'));
         });
@@ -106,7 +117,7 @@ describe('AuthService', () => {
                 lockUntil: new Date(Date.now() + 3600000), // locked for 1 hour
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -116,7 +127,7 @@ describe('AuthService', () => {
 
             userRepository.findByEmail.mockResolvedValue(lockedUser);
 
-            await expect(authService.login('test@example.com', 'password123'))
+            await expect(authService.login('test@example.com', 'Password123@'))
                 .rejects
                 .toThrow(new ApiError('Account is locked', StatusCodes.UNAUTHORIZED, 'AuthService'));
         });
@@ -131,7 +142,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -142,7 +153,7 @@ describe('AuthService', () => {
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(false);
 
-            await expect(authService.login('test@example.com', 'wrongpassword'))
+            await expect(authService.login('test@example.com', 'Password123@!'))
                 .rejects
                 .toThrow(new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService'));
 
@@ -159,7 +170,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -171,7 +182,7 @@ describe('AuthService', () => {
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(true);
 
-            await authService.login('test@example.com', 'password123', deviceInfo);
+            await authService.login('test@example.com', 'password123', deviceInfo as DeviceInfo);
 
             expect(sessionService.createSession).toHaveBeenCalledWith(
                 mockUser._id!.toString(),
@@ -189,7 +200,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -198,7 +209,9 @@ describe('AuthService', () => {
             };
 
             userRepository.findByEmail.mockResolvedValue(mockUser);
-            passwordService.comparePassword.mockRejectedValue(new Error('Password service error'));
+            passwordService.comparePassword.mockRejectedValue(
+                new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService')
+            );
 
             await expect(authService.login('test@example.com', 'password123'))
                 .rejects
@@ -215,7 +228,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -242,7 +255,7 @@ describe('AuthService', () => {
                 failedLoginAttempts: 0,
                 lastActiveAt: new Date(),
                 profile: {},
-                roles: ['user'],
+                role: 'user',
                 permissions: [],
                 isActive: true,
                 isDeleted: false,

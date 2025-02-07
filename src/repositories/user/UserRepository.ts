@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import { BaseRepository } from '@gateway/repositories/BaseRepository';
-import { IUser, ISSOUser } from './IUser';
+import { IUser, ISSOUser, ICredentialsUser } from './IUser';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
 import { Condition, ObjectId, Filter } from 'mongodb';
 
@@ -19,8 +19,8 @@ export class UserRepository extends BaseRepository<IUser> {
         );
     }
 
-    async findByEmail(email: string): Promise<IUser | null> {
-        return this.findOne({ email });
+    async findByEmail(email: string): Promise<ICredentialsUser | null> {
+        return this.findOne({ email }) as Promise<ICredentialsUser> | null;
     }
 
     async findById(id: string): Promise<IUser | null> {

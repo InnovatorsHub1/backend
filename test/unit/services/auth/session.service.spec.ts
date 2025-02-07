@@ -13,6 +13,7 @@ describe('SessionService', () => {
     beforeEach(() => {
         jwtService = {
             generateToken: jest.fn(),
+            generateRefreshToken: jest.fn(),
             verifyToken: jest.fn()
         } as any;
 
@@ -40,13 +41,14 @@ describe('SessionService', () => {
                 isMobile: false
             };
             const mockToken = 'mock-token';
-
+            const mockRefreshToken = 'mock-refresh-token';
             userRepository.findById.mockResolvedValue({
                 _id: new ObjectId(userId),
-                roles: ['user']
+                role: 'user'
             } as any);
 
             jwtService.generateToken.mockReturnValue(mockToken);
+            jwtService.generateRefreshToken.mockResolvedValue(mockRefreshToken);
 
             const token = await sessionService.createSession(userId, deviceInfo);
 
@@ -55,7 +57,11 @@ describe('SessionService', () => {
                 sub: userId,
                 deviceInfo
             }));
-            expect(token).toBe(mockToken);
+            expect(token).toEqual({
+                accessToken: mockToken,
+                refreshToken: mockRefreshToken,
+                id: userId
+            });
         });
 
         it('should handle partial device info', async () => {
@@ -67,7 +73,7 @@ describe('SessionService', () => {
 
             userRepository.findById.mockResolvedValue({
                 _id: new ObjectId(userId),
-                roles: ['user']
+                role: 'user'
             } as any);
 
             await sessionService.createSession(userId, deviceInfo);

@@ -7,6 +7,14 @@ export interface DeviceInfo {
     os?: string;
     device?: string;
     manufacturer?: string;
+    model?: string;
     isBot?: boolean;
     isMobile?: boolean;
+}
+
+
+export interface LoginResponse {
+    accessToken: string;
+    refreshToken: string;
+    id: string;
 }

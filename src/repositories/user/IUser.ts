@@ -13,7 +13,7 @@ interface IBaseUser extends BaseDocument {
         avatar?: string;
         phoneNumber?: string;
     };
-    roles: string[];
+    role: string;
     permissions: string[];
     isActive: boolean;
 }

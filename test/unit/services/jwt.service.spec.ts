@@ -61,14 +61,14 @@ describe('JwtService', () => {
         it('should generate a valid refresh token and store in whitelist', async () => {
             const payload: Omit<RefreshTokenPayload, 'exp' | 'jti'> = {
                 sub: 'user123',
-                role: 'user'
+                permissions: ['user']
             };
 
             const token = await jwtService.generateRefreshToken(payload as RefreshTokenPayload);
             const decoded = verify(token, publicKey, { algorithms: ['RS256'] }) as RefreshTokenPayload;
 
             expect(decoded.sub).toBe(payload.sub);
-            expect(decoded.role).toBe(payload.role);
+            expect(decoded.permissions).toEqual(payload.permissions);
             expect(decoded.jti).toBeDefined();
             expect(decoded.exp).toBeDefined();
         });
@@ -79,7 +79,7 @@ describe('JwtService', () => {
 
             await expect(jwtService.generateRefreshToken({
                 sub: 'user123',
-                role: 'user'
+                permissions: ['user']
             } as RefreshTokenPayload)).rejects.toThrow(new ApiError('JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR, 'JwtService'));
         });
     });
@@ -91,7 +91,7 @@ describe('JwtService', () => {
 
             const payload = {
                 sub: 'user123',
-                role: 'user',
+                permissions: ['user'],
                 jti: 'test-jti',
                 exp: Math.floor(Date.now() / 1000) + 3600
             };
@@ -105,7 +105,7 @@ describe('JwtService', () => {
         it('should throw when token not in whitelist', async () => {
             const payload = {
                 sub: 'user123',
-                role: 'user',
+                permissions: ['user'],
                 jti: 'test-jti',
                 exp: Math.floor(Date.now() / 1000) + 3600
             };
@@ -138,7 +138,7 @@ describe('JwtService', () => {
         it('should generate a valid access token', () => {
             const payload: AccessTokenPayload = {
                 sub: 'user123',
-                role: 'user',
+                permissions: ['user'],
                 exp: Math.floor(Date.now() / 1000) + 3600
             };
 
@@ -149,7 +149,7 @@ describe('JwtService', () => {
 
     describe('verifyToken', () => {
         it('should verify a valid token', () => {
-            const payload = { sub: 'user123', role: 'user' };
+            const payload = { sub: 'user123', permissions: ['user'] };
             const token = sign(payload, privateKey, { algorithm: 'RS256' });
             const result = jwtService.verifyToken(token);
             expect(result).toMatchObject(payload);
@@ -214,15 +214,15 @@ describe('JwtService', () => {
 
     describe('validatePayload', () => {
         it('should throw when subject is missing', () => {
-            const invalidPayload = { role: 'user' } as AccessTokenPayload;
+            const invalidPayload = { permissions: ['user'] } as AccessTokenPayload;
             expect(() => jwtService['validatePayload'](invalidPayload))
                 .toThrow(new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });
 
-        it('should throw when role is missing', () => {
+        it('should throw when permissions are missing', () => {
             const invalidPayload = { sub: 'user123' } as AccessTokenPayload;
             expect(() => jwtService['validatePayload'](invalidPayload))
-                .toThrow(new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
+                .toThrow(new ApiError('Invalid permissions claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });
 
         it('should throw when subject is not a string', () => {
@@ -234,7 +234,7 @@ describe('JwtService', () => {
         it('should throw when role is not a string', () => {
             const invalidPayload = { sub: 'user123', role: 123 } as unknown as AccessTokenPayload;
             expect(() => jwtService['validatePayload'](invalidPayload))
-                .toThrow(new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
+                .toThrow(new ApiError('Invalid permissions claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });
     });
 
@@ -246,7 +246,7 @@ describe('JwtService', () => {
             const refreshToken = sign(
                 {
                     sub: 'user123',
-                    role: 'user',
+                    permissions: ['user'],
                     jti: 'test-jti',
                     exp: Math.floor(Date.now() / 1000) + 3600
                 },
@@ -261,20 +261,20 @@ describe('JwtService', () => {
 
     describe('validatePayload', () => {
         it('should throw on missing subject', () => {
-            expect(() => jwtService['validatePayload']({ role: 'user' } as any))
+            expect(() => jwtService['validatePayload']({ permissions: ['user'] } as any))
                 .toThrow(new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'JwtService'));
         });
 
-        it('should throw on missing role', () => {
+        it('should throw on missing permissions', () => {
             expect(() => jwtService['validatePayload']({ sub: 'user123' } as any))
-                .toThrow(new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'JwtService'));
+                .toThrow(new ApiError('Invalid permissions claim', StatusCodes.BAD_REQUEST, 'JwtService'));
         });
     });
 
     describe('error handling', () => {
         it('should handle expired tokens', () => {
             const expiredToken = sign(
-                { sub: 'user123', role: 'user' },
+                { sub: 'user123', permissions: ['user'] },
                 privateKey,
                 { algorithm: 'RS256', expiresIn: '-1h' }
             );
@@ -288,7 +288,7 @@ describe('JwtService', () => {
             (collection.findOne as jest.Mock).mockRejectedValueOnce(new Error('DB Error'));
 
             const token = sign(
-                { sub: 'user123', role: 'user', jti: 'test-jti' },
+                { sub: 'user123', permissions: ['user'], jti: 'test-jti' },
                 privateKey,
                 { algorithm: 'RS256' }
             );
@@ -305,7 +305,7 @@ describe('JwtService', () => {
 
             await expect(jwtService.generateRefreshToken({
                 sub: 'user123',
-                role: 'user'
+                permissions: ['user']
             } as RefreshTokenPayload)).resolves.toBeDefined();
         });
     });

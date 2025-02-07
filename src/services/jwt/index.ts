@@ -92,8 +92,8 @@ export class JwtService {
         if (!payload?.sub || typeof payload.sub !== 'string') {
             throw new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'JwtService');
         }
-        if (!payload?.role || typeof payload.role !== 'string') {
-            throw new ApiError('Invalid role claim', StatusCodes.BAD_REQUEST, 'JwtService');
+        if (!payload?.permissions || !Array.isArray(payload.permissions)) {
+            throw new ApiError('Invalid permissions claim', StatusCodes.BAD_REQUEST, 'JwtService');
         }
     }
 
@@ -201,7 +201,7 @@ export class JwtService {
         const decoded = await this.verifyRefreshToken(refreshToken);
         return this.generateToken({
             sub: decoded.sub!,
-            role: decoded.role,
+            permissions: decoded.permissions,
             exp: decoded.exp!
         });
     }

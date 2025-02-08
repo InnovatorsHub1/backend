@@ -68,6 +68,12 @@ describe('PasswordService', () => {
                 .rejects
                 .toThrow(ApiError);
         });
+
+        it('should throw error for non-string password', async () => {
+            await expect(passwordService.hashPassword(123 as any))
+                .rejects
+                .toThrow(new ApiError('Invalid password format', StatusCodes.BAD_REQUEST, 'PasswordService'));
+        });
     });
 
     describe('comparePassword', () => {

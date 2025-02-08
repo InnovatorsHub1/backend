@@ -4,6 +4,7 @@ import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { ObjectId } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { DeviceInfo } from '@gateway/services/auth/types'
+import { StatusCodes } from 'http-status-codes';
 
 describe('SessionService', () => {
     let sessionService: SessionService;
@@ -93,6 +94,15 @@ describe('SessionService', () => {
             await expect(sessionService.createSession(userId, {} as DeviceInfo))
                 .rejects
                 .toThrow(ApiError);
+        });
+
+        it('should rethrow ApiError', async () => {
+            const apiError = new ApiError('Test error', StatusCodes.BAD_REQUEST, 'SessionService');
+            userRepository.findById.mockRejectedValue(apiError);
+
+            await expect(sessionService.createSession('userId', {} as DeviceInfo))
+                .rejects
+                .toThrow(apiError);
         });
     });
 

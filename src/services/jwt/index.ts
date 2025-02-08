@@ -40,17 +40,17 @@ export class JwtService {
             });
         } catch (error) {
             console.error('JWT Service initialization error:', error);
-            throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JwtService');
+            throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
         }
     }
 
     private validateDependencies(): void {
-        if (!this.db) throw new Error('Database connection is required');
+        if (!this.db) throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
         if (!config.jwtPublicKeyPath || !config.jwtPrivateKeyPath) {
-            throw new Error('JWT key paths are required');
+            throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
         }
         if (!config.jwtAccessExpiration || !config.jwtRefreshExpiration) {
-            throw new Error('JWT expiration configuration is required');
+            throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
         }
     }
 
@@ -61,13 +61,16 @@ export class JwtService {
     }
 
     private async initializeJtiTTLIndex() {
-        await this.runWithErrorHandling(async () => {
+        try {
             const collection = this.jtiCollection();
             await collection.createIndex(
                 { expiresAt: 1 },
                 { expireAfterSeconds: 0, background: true }
             );
-        });
+        } catch (error) {
+            console.error('Failed to initialize TTL index:', error);
+            throw new ApiError('Failed to initialize JWT service', StatusCodes.INTERNAL_SERVER_ERROR, 'JWT Service Error');
+        }
     }
 
     private async runWithErrorHandling<T>(fn: () => Promise<T>): Promise<T> {

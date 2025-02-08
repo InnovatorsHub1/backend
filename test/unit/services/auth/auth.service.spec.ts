@@ -271,5 +271,31 @@ describe('AuthService', () => {
                 .rejects
                 .toThrow(ApiError);
         });
+
+        it('should rethrow ApiError', async () => {
+            const mockDeviceInfo: DeviceInfo = {
+                userAgent: 'test-agent',
+                ip: '127.0.0.1',
+                platform: 'test'
+            };
+            const apiError = new ApiError('Test error', StatusCodes.BAD_REQUEST, 'AuthService');
+            userRepository.findByEmail.mockRejectedValue(apiError);
+
+            await expect(authService.login('test@example.com', 'password123', mockDeviceInfo))
+                .rejects
+                .toThrow(apiError);
+        });
+
+        it('should throw invalid email format error', async () => {
+            const mockDeviceInfo: DeviceInfo = {
+                userAgent: 'test-agent',
+                ip: '127.0.0.1',
+                platform: 'test'
+            };
+
+            await expect(authService.login('invalid-email', 'password123', mockDeviceInfo))
+                .rejects
+                .toThrow(new ApiError('Invalid email format', StatusCodes.BAD_REQUEST, 'AuthService'));
+        });
     });
 }); 

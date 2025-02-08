@@ -219,20 +219,20 @@ describe('JwtService', () => {
                 .toThrow(new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });
 
-        it('should throw when permissions are missing', () => {
+        it('should throw when permissions is missing', () => {
             const invalidPayload = { sub: 'user123' } as AccessTokenPayload;
             expect(() => jwtService['validatePayload'](invalidPayload))
                 .toThrow(new ApiError('Invalid permissions claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });
 
         it('should throw when subject is not a string', () => {
-            const invalidPayload = { sub: 123, role: 'user' } as unknown as AccessTokenPayload;
+            const invalidPayload = { sub: 123, permissions: ['user'] } as unknown as AccessTokenPayload;
             expect(() => jwtService['validatePayload'](invalidPayload))
                 .toThrow(new ApiError('Invalid subject claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });
 
-        it('should throw when role is not a string', () => {
-            const invalidPayload = { sub: 'user123', role: 123 } as unknown as AccessTokenPayload;
+        it('should throw when permissions is not a string', () => {
+            const invalidPayload = { sub: 'user123', permissions: 123 } as unknown as AccessTokenPayload;
             expect(() => jwtService['validatePayload'](invalidPayload))
                 .toThrow(new ApiError('Invalid permissions claim', StatusCodes.BAD_REQUEST, 'Invalid payload'));
         });

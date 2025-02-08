@@ -99,8 +99,4 @@ export class AuthService {
         await this.userRepository.resetFailedAttempts(userId);
         await this.userRepository.updateLastLogin(userId);
     }
-
-    async logout(userId: string): Promise<void> {
-        await this.jwtService.revokeToken(userId);
-    }
 } 

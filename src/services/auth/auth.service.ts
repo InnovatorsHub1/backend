@@ -5,12 +5,14 @@ import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import { SessionService } from '@gateway/services/auth/session.service';
 import { JwtService } from '@gateway/services/jwt/index';
-import { DeviceInfo, LoginResponse } from './types';
+import { Request } from 'express';
+import { StandardValidators } from '@gateway/core/validation/validators';
+import { LoginResponse } from '@gateway/services/auth/types';
+
 
 @injectable()
 
 export class AuthService {
-    private readonly EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
 
     constructor(
         @inject('UserRepository') private userRepository: UserRepository,
@@ -31,7 +33,7 @@ export class AuthService {
     }
 
     private validateEmail(email: string): void {
-        if (!this.EMAIL_REGEX.test(email)) {
+        if (!StandardValidators.email(email)) {
             throw new ApiError(
                 'Invalid email format',
                 StatusCodes.BAD_REQUEST,
@@ -40,7 +42,7 @@ export class AuthService {
         }
     }
 
-    async login(email: string, password: string, deviceInfo?: DeviceInfo): Promise<LoginResponse> {
+    async login(email: string, password: string, deviceInfo?: Request['deviceInfo']): Promise<LoginResponse> {
         this.validateEmail(email);
 
 
@@ -70,10 +72,9 @@ export class AuthService {
         await this.runWithErrorHandling(
             async () => {
                 await this.handleSuccessfulLogin(user._id!.toString());
-                await this.sessionService.createSession(user._id!.toString(), deviceInfo as DeviceInfo);
+                await this.sessionService.createSession(user._id!.toString(), deviceInfo as Request['deviceInfo']);
             },
             'Failed to complete login process'
-
         );
 
         const accessToken = this.jwtService.generateToken({

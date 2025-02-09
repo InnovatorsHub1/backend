@@ -1,8 +1,10 @@
 import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { IUser } from '@gateway/repositories/user/IUser';
 import { ObjectId } from 'mongodb';
-
-
+import { Collection } from 'mongodb';
+import { mongoConnection } from '@gateway/utils/mongoConnection';
+import { ApiError } from '@gateway/core/errors/api.error';
+import { StatusCodes } from 'http-status-codes';
 jest.mock('@gateway/utils/mongoConnection', () => ({
     mongoConnection: {
         getClient: jest.fn().mockReturnValue({
@@ -16,56 +18,34 @@ jest.mock('@gateway/utils/mongoConnection', () => ({
                 })
             })
         })
-    }
+    },
 }));
 
 describe('UserRepository', () => {
     let userRepository: UserRepository;
-    let testUser: IUser;
-    let mockFindOne: jest.Mock;
-    let mockUpdateOne: jest.Mock;
+    let mockCollection: jest.Mocked<Collection<IUser>>;
 
     beforeEach(() => {
-        // איפוס המוקים
-        mockFindOne = jest.fn();
-        mockUpdateOne = jest.fn();
+        mockCollection = {
+            findOne: jest.fn(),
+            updateOne: jest.fn(),
+            createIndex: jest.fn(),
+            deleteMany: jest.fn(),
+            aggregate: jest.fn().mockReturnValue({ toArray: jest.fn() })
+        } as any;
 
-        jest.mock('@gateway/utils/mongoConnection', () => ({
-            mongoConnection: {
-                getClient: jest.fn().mockReturnValue({
-                    db: jest.fn().mockReturnValue({
-                        collection: jest.fn().mockReturnValue({
-                            findOne: mockFindOne,
-                            updateOne: mockUpdateOne,
-                            find: jest.fn(),
-                            deleteMany: jest.fn(),
-                            createIndex: jest.fn()
-                        })
-                    })
-                })
-            }
-        }));
+        jest.spyOn(mongoConnection, 'getClient').mockReturnValue({
+            db: () => ({
+                collection: () => mockCollection
+            })
+        } as any);
 
         userRepository = new UserRepository();
-        testUser = {
-            _id: new ObjectId(),
-            email: 'test@example.com',
-            username: 'test',
-            failedLoginAttempts: 0
-        } as IUser;
+    });
 
-        // הגדרת ערכי ברירת מחדל למוקים
-        mockFindOne.mockResolvedValue(testUser);
-        mockUpdateOne.mockResolvedValue({ modifiedCount: 1 });
-
-        // מקק את findById
-        jest.spyOn(userRepository, 'findById').mockImplementation(async (id) => {
-            if (id === testUser._id?.toString()) {
-                return testUser;
-            }
-            return null;
-        });
-
+    afterEach(() => {
+        jest.clearAllMocks();
+        jest.restoreAllMocks();
     });
 
     it('should find user by email', async () => {
@@ -86,50 +66,160 @@ describe('UserRepository', () => {
         expect(result).toBeNull();
     });
 
-    it('should increment failed attempts', async () => {
-        const updatedUser = { ...testUser, failedLoginAttempts: 1 };
-        jest.spyOn(userRepository, 'findById').mockResolvedValueOnce(updatedUser);
-
-        await userRepository.incrementFailedAttempts(testUser._id?.toString() ?? '');
-        const user = await userRepository.findById(testUser._id?.toString() ?? '');
-        expect(user?.failedLoginAttempts).toBe(1);
-
+    it('should increment failed attempts when user is found', async () => {
+        const userId = new ObjectId().toString();
+        await userRepository.incrementFailedAttempts(userId);
+        expect(mockCollection.updateOne).toHaveBeenCalledWith(
+            { _id: new ObjectId(userId) },
+            {
+                $inc: { failedLoginAttempts: 1 },
+                $currentDate: { updatedAt: true }
+            }
+        );
     });
 
-    it('should reset failed attempts', async () => {
-        await userRepository.incrementFailedAttempts(testUser._id?.toString() ?? '');
-        await userRepository.resetFailedAttempts(testUser._id?.toString() ?? '');
-        const user = await userRepository.findById(testUser._id?.toString() ?? '');
-        expect(user?.failedLoginAttempts).toBe(0);
+    it('should reset failed attempts when user is found', async () => {
+        const userId = new ObjectId().toString();
+        await userRepository.resetFailedAttempts(userId);
+        expect(mockCollection.updateOne).toHaveBeenCalledWith(
+            { _id: new ObjectId(userId) },
+            {
+                $set: {
+                    failedLoginAttempts: 0,
+                    lockUntil: undefined
+                },
+                $currentDate: { updatedAt: true }
+            }
+        );
     });
 
-    it('should update last login', async () => {
-        const updatedUser = {
-            ...testUser,
-            lastLogin: new Date(),
-            lastActiveAt: new Date()
-        };
-        jest.spyOn(userRepository, 'findById').mockResolvedValueOnce(updatedUser);
-
-        await userRepository.updateLastLogin(testUser._id?.toString() ?? '');
-        const user = await userRepository.findById(testUser._id?.toString() ?? '');
-        expect(user?.lastLogin).toBeDefined();
-        expect(user?.lastActiveAt).toBeDefined();
-
+    it('should update last login when user is found', async () => {
+        const userId = new ObjectId().toString();
+        await userRepository.updateLastLogin(userId);
+        expect(mockCollection.updateOne).toHaveBeenCalledWith(
+            { _id: new ObjectId(userId) },
+            {
+                $set: {
+                    lastLogin: expect.any(Date),
+                    lastActiveAt: expect.any(Date)
+                },
+                $currentDate: { updatedAt: true }
+            }
+        );
     });
 
-    it('should handle failed increment attempts', async () => {
+    it('should handle failed increment attempts when user not found', async () => {
         jest.spyOn(userRepository, 'findById').mockResolvedValue(null);
         await expect(userRepository.incrementFailedAttempts('invalid-id')).rejects.toThrow();
     });
 
-    it('should handle failed reset attempts', async () => {
+    it('should handle failed reset attempts when user not found', async () => {
         jest.spyOn(userRepository, 'findById').mockResolvedValue(null);
         await expect(userRepository.resetFailedAttempts('invalid-id')).rejects.toThrow();
     });
 
-    it('should handle failed last login update', async () => {
+    it('should handle failed last login update when user not found', async () => {
         jest.spyOn(userRepository, 'findById').mockResolvedValue(null);
         await expect(userRepository.updateLastLogin('invalid-id')).rejects.toThrow();
+    });
+
+    it('should return null when user not found by id', async () => {
+        mockCollection.findOne.mockResolvedValueOnce(null);
+        const result = await userRepository.findById(new ObjectId().toString());
+        expect(result).toBeNull();
+    });
+
+    it('should handle invalid ObjectId', async () => {
+        await expect(userRepository.findById('not-an-object-id'))
+            .rejects
+            .toThrow(new ApiError('Cannot connect to database', StatusCodes.INTERNAL_SERVER_ERROR, 'UserRepository'));
+    });
+
+    it('should handle database errors in findById', async () => {
+        mockCollection.findOne.mockRejectedValueOnce(new Error('Database error'));
+        await expect(userRepository.findById(new ObjectId().toString()))
+            .rejects.toThrow('Cannot connect to database');
+    });
+
+    it('should find user by provider', async () => {
+        const mockUser = { provider: 'google', providerId: '123', email: 'test@example.com' } as IUser;
+        jest.spyOn(userRepository as any, 'findOne').mockResolvedValueOnce(mockUser);
+        const result = await userRepository.findByProvider('google', '123');
+        expect(result).toEqual(mockUser);
+    });
+
+    it('should handle database errors in findByProvider', async () => {
+        jest.spyOn(userRepository as any, 'findOne').mockRejectedValueOnce(new Error('Database error'));
+        await expect(userRepository.findByProvider('google', '123'))
+            .rejects.toThrow('Cannot connect to database');
+    });
+
+    it('should update activity when user is found', async () => {
+        const userId = new ObjectId().toString();
+        await userRepository.updateActivity(userId);
+        expect(mockCollection.updateOne).toHaveBeenCalledWith(
+            { _id: new ObjectId(userId) },
+            {
+                $set: { lastActiveAt: expect.any(Date) },
+                $currentDate: { updatedAt: true }
+            }
+        );
+    });
+
+    it('should handle database errors in updateActivity', async () => {
+        const userId = new ObjectId().toString();
+        mockCollection.updateOne.mockRejectedValueOnce(new Error('Database error'));
+        await expect(userRepository.updateActivity(userId)).rejects.toThrow('Cannot connect to database');
+    });
+
+    it('should return inactivity time from aggregate result', async () => {
+        const userId = new ObjectId().toString();
+        const inactivityMinutes = 45;
+        (mockCollection.aggregate as jest.Mock).mockReturnValueOnce({
+            toArray: jest.fn().mockResolvedValueOnce([{ inactiveMinutes: inactivityMinutes }])
+        });
+        const result = await userRepository.getInactivityTime(userId);
+        expect(result).toBe(inactivityMinutes);
+    });
+
+    it('should return 0 inactivity time if aggregate returns empty array', async () => {
+        const userId = new ObjectId().toString();
+        (mockCollection.aggregate as jest.Mock).mockReturnValueOnce({
+            toArray: jest.fn().mockResolvedValueOnce([])
+        });
+        const result = await userRepository.getInactivityTime(userId);
+        expect(result).toBe(0);
+    });
+
+    it('should handle database errors in getInactivityTime', async () => {
+        const userId = new ObjectId().toString();
+        (mockCollection.aggregate as jest.Mock).mockReturnValueOnce({
+            toArray: jest.fn().mockRejectedValueOnce(new Error('Database error'))
+        });
+        await expect(userRepository.getInactivityTime(userId)).rejects.toThrow('Cannot connect to database');
+    });
+
+    it('should delete many users with provided filter', async () => {
+        const filter = { email: /@example.com$/ };
+        await userRepository.deleteMany(filter);
+        expect(mockCollection.deleteMany).toHaveBeenCalledWith(filter);
+    });
+
+    it('should delete many users with default filter if none provided', async () => {
+        await userRepository.deleteMany();
+        expect(mockCollection.deleteMany).toHaveBeenCalledWith({});
+    });
+
+    it('should handle database errors in deleteMany', async () => {
+        mockCollection.deleteMany.mockRejectedValueOnce(new Error('Database error'));
+        await expect(userRepository.deleteMany({})).rejects.toThrow('Cannot connect to database');
+    });
+
+    it('should create indexes on instantiation', async () => {
+        await Promise.resolve();
+        expect(mockCollection.createIndex).toHaveBeenCalledWith(
+            { lastActiveAt: 1 },
+            { expireAfterSeconds: 60 * 60 * 24 * 30, background: true }
+        );
     });
 });

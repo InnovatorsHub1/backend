@@ -7,7 +7,8 @@ import { ObjectId } from 'mongodb';
 import { StatusCodes } from 'http-status-codes';
 import { ICredentialsUser, ISSOUser } from '@gateway/repositories/user/IUser';
 import { JwtService } from '@gateway/services/jwt';
-import { DeviceInfo } from '@gateway/services/auth/types';
+import { Request } from 'express';
+
 describe('AuthService', () => {
     let authService: AuthService;
     let userRepository: jest.Mocked<UserRepository>;
@@ -182,7 +183,7 @@ describe('AuthService', () => {
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(true);
 
-            await authService.login('test@example.com', 'password123', deviceInfo as DeviceInfo);
+            await authService.login('test@example.com', 'password123', deviceInfo as Request['deviceInfo']);
 
             expect(sessionService.createSession).toHaveBeenCalledWith(
                 mockUser._id!.toString(),
@@ -273,7 +274,7 @@ describe('AuthService', () => {
         });
 
         it('should rethrow ApiError', async () => {
-            const mockDeviceInfo: DeviceInfo = {
+            const mockDeviceInfo: Request['deviceInfo'] = {
                 userAgent: 'test-agent',
                 ip: '127.0.0.1',
                 platform: 'test'
@@ -287,7 +288,7 @@ describe('AuthService', () => {
         });
 
         it('should throw invalid email format error', async () => {
-            const mockDeviceInfo: DeviceInfo = {
+            const mockDeviceInfo: Request['deviceInfo'] = {
                 userAgent: 'test-agent',
                 ip: '127.0.0.1',
                 platform: 'test'

@@ -3,7 +3,7 @@ import { JwtService } from '@gateway/services/jwt/index';
 import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { ObjectId } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
-import { DeviceInfo } from '@gateway/services/auth/types'
+import { Request } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
 describe('SessionService', () => {
@@ -29,7 +29,7 @@ describe('SessionService', () => {
     describe('createSession', () => {
         it('should create a session successfully', async () => {
             const userId = new ObjectId().toString();
-            const deviceInfo: DeviceInfo = {
+            const deviceInfo: Request['deviceInfo'] = {
                 userAgent: 'Mozilla/5.0',
                 ip: '127.0.0.1',
                 platform: 'Windows',
@@ -67,7 +67,7 @@ describe('SessionService', () => {
 
         it('should handle partial device info', async () => {
             const userId = new ObjectId().toString();
-            const deviceInfo: DeviceInfo = {
+            const deviceInfo: Request['deviceInfo'] = {
                 userAgent: 'Mozilla/5.0',
                 ip: '127.0.0.1'
             };
@@ -91,7 +91,7 @@ describe('SessionService', () => {
             const userId = new ObjectId().toString();
             userRepository.findById.mockResolvedValue(null);
 
-            await expect(sessionService.createSession(userId, {} as DeviceInfo))
+            await expect(sessionService.createSession(userId, {} as Request['deviceInfo']))
                 .rejects
                 .toThrow(ApiError);
         });
@@ -100,7 +100,7 @@ describe('SessionService', () => {
             const apiError = new ApiError('Test error', StatusCodes.BAD_REQUEST, 'SessionService');
             userRepository.findById.mockRejectedValue(apiError);
 
-            await expect(sessionService.createSession('userId', {} as DeviceInfo))
+            await expect(sessionService.createSession('userId', {} as Request['deviceInfo']))
                 .rejects
                 .toThrow(apiError);
         });

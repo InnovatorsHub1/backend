@@ -59,7 +59,61 @@ curl http://localhost:3000/api/health \
 }
 ```
 
+### Authentication Routes
+
+#### Login
+
+```bash
+curl -X POST \
+  http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "yourpassword"
+  }'
+```
+#### Response:
+
+```json
+{
+  "message": "login success"
+}
+```
+
+#### Refresh
+
+```bash
+curl -X POST \
+  http://localhost:3000/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+#### Response:
+
+```json
+{
+  "message": "refresh success"
+}
+```
+
+#### Logout
+
+```bash
+curl -X POST \
+  http://localhost:3000/api/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+#### Response:
+
+```json
+{
+  "message": "logout success"
+}
+```
+
 ### PDF Generation
+
 
 ```bash
 curl -X POST \

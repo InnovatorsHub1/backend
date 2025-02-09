@@ -127,7 +127,7 @@ describe('AuthController', () => {
             await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
             expect(mockNext).toHaveBeenCalledWith(
-                new ApiError('Email and password are required', StatusCodes.BAD_REQUEST, 'AuthController')
+                new ApiError('Email and password are required', StatusCodes.UNPROCESSABLE_ENTITY, 'AuthController')
             );
         });
 

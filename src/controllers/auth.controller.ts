@@ -1,18 +1,24 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, CookieOptions } from 'express';
 import { AuthService } from '@gateway/services/auth/auth.service';
 import { JwtService } from '@gateway/services/jwt';
-import { extractDeviceInfo } from '@gateway/utils/device';
 import { injectable, inject } from 'inversify';
 import { StatusCodes } from 'http-status-codes';
-import { DeviceInfo } from '@gateway/services/auth/types';
 import { ApiError } from '@gateway/core/errors/api.error';
 
 
 @injectable()
 export class AuthController {
+
+    private configCookie: CookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict' as const
+    };
+
     constructor(
         @inject('AuthService') private authService: AuthService,
         @inject('JwtService') private jwtService: JwtService
+
     ) { }
 
     public async login(req: Request, res: Response, next: NextFunction) {
@@ -20,31 +26,22 @@ export class AuthController {
             const { email, password } = req.body;
 
             if (!email || !password) {
-                throw new ApiError('Email and password are required', StatusCodes.BAD_REQUEST, 'AuthController');
+                throw new ApiError('Email and password are required', StatusCodes.UNPROCESSABLE_ENTITY, 'AuthController');
             }
 
-            const rawDeviceInfo = extractDeviceInfo(req);
-            const deviceInfo: DeviceInfo = {
-                userAgent: rawDeviceInfo.userAgent || 'Unknown',
-                ip: rawDeviceInfo.ip || req.ip || 'Unknown',
-                platform: rawDeviceInfo.platform
-            };
+            const deviceInfo = req.deviceInfo;
 
             const { accessToken, refreshToken } = await this.authService.login(email, password, deviceInfo);
 
-            res.cookie('access_token', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
-            });
+            res.cookie('access_token', accessToken, this.configCookie as CookieOptions);
 
-            res.cookie('refresh_token', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
-            });
 
-            res.status(StatusCodes.OK).json({ success: true });
+            res.cookie('refresh_token', refreshToken, this.configCookie as CookieOptions);
+
+
+
+
+            res.status(StatusCodes.OK).json({ message: 'login success' });
         } catch (error) {
             next(error);
         }
@@ -60,17 +57,14 @@ export class AuthController {
 
             const newAccessToken = await this.jwtService.refreshTokens(refreshToken);
 
-            res.cookie('access_token', newAccessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
-            });
+            res.cookie('access_token', newAccessToken, this.configCookie as CookieOptions);
 
-            res.json({ success: true });
+            res.json({ message: 'refresh success' });
         } catch (error) {
             next(error);
         }
     }
+
 
     public async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
@@ -83,7 +77,8 @@ export class AuthController {
 
             res.clearCookie('access_token');
             res.clearCookie('refresh_token');
-            res.status(StatusCodes.OK).json({ success: true });
+            res.status(StatusCodes.OK).json({ message: 'logout success' });
+
         } catch (error) {
             next(error);
         }

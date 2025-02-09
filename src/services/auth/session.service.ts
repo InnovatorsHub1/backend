@@ -4,7 +4,9 @@ import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { AccessTokenPayload } from '@gateway/services/jwt/types';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
-import { DeviceInfo, LoginResponse } from './types';
+import { Request } from 'express';
+import { LoginResponse } from '@gateway/services/auth/types';
+
 
 
 @injectable()
@@ -25,7 +27,7 @@ export class SessionService {
         }
     }
 
-    async createSession(userId: string, deviceInfo: DeviceInfo): Promise<LoginResponse> {
+    async createSession(userId: string, deviceInfo: Request['deviceInfo']): Promise<LoginResponse> {
         const user = await this.runWithErrorHandling(
             () => this.userRepository.findById(userId),
             'Failed to fetch user'

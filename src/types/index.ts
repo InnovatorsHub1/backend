@@ -1,3 +1,5 @@
+import { LogMeta } from '@gateway/core/logger/logger.interfaces';
+
 export interface IErrorResponse {
   message: string;
   statusCode: number;
@@ -7,10 +9,10 @@ export interface IErrorResponse {
 }
 
 export interface ILogger {
-  info(message: string, meta?: any): void;
-  error(message: string, meta?: any): void;
-  warn(message: string, meta?: any): void;
-  debug(message: string, meta?: any): void;
+  info(message: string, meta?: LogMeta): void;
+  error(message: string, meta?: LogMeta): void;
+  warn(message: string, meta?: LogMeta): void;
+  debug(message: string, meta?: LogMeta): void;
 }
 
 export interface IConfig {

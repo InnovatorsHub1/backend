@@ -3,6 +3,7 @@ import { Container } from 'inversify';
 import express, { Application } from 'express';
 
 import { ValidationService } from '../validation/validation.service';
+
 import { HealthService } from '../../services/health.service';
 import { HealthController } from '../../controllers/health.controller';
 import { HealthRoutes } from '../../routes/health.routes';
@@ -15,6 +16,7 @@ import { PDFRoutes } from '../../routes/pdf.routes';
 
 import { TYPES } from './types';
 import { RetryService } from '@gateway/services/retry.service';
+import { WinstonLogger } from '../logger/winston.logger';
 
 const container = new Container({ defaultScope: 'Singleton' });
 
@@ -33,6 +35,7 @@ container.bind<PDFService>(TYPES.PDFService).to(PDFService);
 container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
-container.bind<RetryService>(TYPES.RetryService).to(RetryService)
+container.bind<RetryService>(TYPES.RetryService).to(RetryService);
+container.bind<WinstonLogger>(TYPES.Logger).to(WinstonLogger);
 
 export { container };

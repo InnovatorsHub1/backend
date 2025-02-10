@@ -1,7 +1,10 @@
 import winston, { Logger, format, transports } from 'winston';
 import { ElasticsearchTransport } from 'winston-elasticsearch';
+
 import { ILogger } from '../../types';
 import { config } from '../../config';
+
+import { LogMeta } from './logger.interfaces';
 
 export class WinstonLogger implements ILogger {
   private logger: Logger;
@@ -9,8 +12,8 @@ export class WinstonLogger implements ILogger {
   constructor(serviceName: string) {
     const { combine, timestamp, colorize, printf } = format;
 
-    const logFormat = printf(({ level, message, timestamp, ...meta }) => {
-      return `${timestamp} [${serviceName}] ${level}: ${message} ${
+    const logFormat = printf(({ level, message, timestamp: logTimestamp, ...meta }) => {
+      return `${logTimestamp} [${serviceName}] ${level}: ${message} ${
         Object.keys(meta).length ? JSON.stringify(meta) : ''
       }`;
     });
@@ -20,9 +23,9 @@ export class WinstonLogger implements ILogger {
         format: combine(
           colorize(),
           timestamp(),
-          logFormat
-        )
-      })
+          logFormat,
+        ),
+      }),
     ];
 
     if (config.isElasticConfigured) {
@@ -33,15 +36,15 @@ export class WinstonLogger implements ILogger {
           severity: logData.level,
           message: logData.message,
           service: serviceName,
-          fields: logData.meta
+          fields: logData.meta,
         }),
         clientOpts: {
           node: config.elasticUrl,
           maxRetries: 2,
           requestTimeout: 10000,
-          sniffOnStart: false
+          sniffOnStart: false,
         },
-        indexPrefix: `logs-${serviceName.toLowerCase()}-${config.nodeEnv}`
+        indexPrefix: `logs-${serviceName.toLowerCase()}-${config.nodeEnv}`,
       });
 
       transportArray.push(elasticTransport);
@@ -50,23 +53,30 @@ export class WinstonLogger implements ILogger {
     this.logger = winston.createLogger({
       level: config.nodeEnv === 'development' ? 'debug' : 'info',
       defaultMeta: { service: serviceName },
-      transports: transportArray
+      transports: transportArray,
     });
   }
 
-  info(message: string, meta?: any): void {
-    this.logger.info(message, meta);
+  info(message: string, meta?: LogMeta): void {
+    this.logger.info(message, { ...meta });
   }
 
-  error(message: string, meta?: any): void {
-    this.logger.error(message, meta);
+  error(message: string, error?: Error, meta?: LogMeta): void {
+    this.logger.error(message,  {
+      ...meta,
+      error: error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      } : undefined,
+    });
   }
 
-  warn(message: string, meta?: any): void {
+  warn(message: string, meta?: LogMeta): void {
     this.logger.warn(message, meta);
   }
 
-  debug(message: string, meta?: any): void {
+  debug(message: string, meta?: LogMeta): void {
     this.logger.debug(message, meta);
   }
 }

@@ -1,11 +1,9 @@
 import { AuthController } from '@gateway/controllers/auth.controller';
 import { AuthService } from '@gateway/services/auth/auth.service';
 import { JwtService } from '@gateway/services/jwt';
-import { Request, Response, } from 'express';
+import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '@gateway/core/errors/api.error';
-
-
 
 describe('AuthController', () => {
     let authController: AuthController;
@@ -15,6 +13,13 @@ describe('AuthController', () => {
     let mockNext: jest.Mock;
     let jwtService: jest.Mocked<JwtService>;
 
+    // פונקציה עזר שמוסיפה את deviceInfo לבקשה
+    function setDeviceInfo(req: Partial<Request>) {
+        (req as any).deviceInfo = {
+            ip: req.ip || 'Unknown',
+            userAgent: (req.headers && req.headers['user-agent'] as string) || 'Unknown'
+        };
+    }
 
     beforeEach(() => {
         authService = {
@@ -29,7 +34,6 @@ describe('AuthController', () => {
             refreshTokens: jest.fn()
         } as any;
 
-
         mockRequest = {
             body: {
                 email: 'test@example.com',
@@ -39,6 +43,9 @@ describe('AuthController', () => {
             headers: {},
             ip: '127.0.0.1'
         };
+
+        // הגדרה ראשונית של deviceInfo על בסיס ip ו־headers
+        setDeviceInfo(mockRequest);
 
         mockResponse = {
             status: jest.fn().mockReturnThis(),
@@ -52,7 +59,6 @@ describe('AuthController', () => {
         authController = new AuthController(authService, jwtService);
     });
 
-
     describe('login', () => {
         it('should successfully login and set cookies', async () => {
             const credentials = {
@@ -61,6 +67,8 @@ describe('AuthController', () => {
             };
 
             mockRequest.body = credentials;
+            // עדכון deviceInfo - חשוב לקרוא לעדכון לפני השימוש
+            setDeviceInfo(mockRequest);
 
             const mockTokens = {
                 accessToken: 'access-token',
@@ -80,7 +88,6 @@ describe('AuthController', () => {
                     ip: '127.0.0.1'
                 })
             );
-
 
             expect(mockResponse.cookie).toHaveBeenNthCalledWith(1,
                 'access_token',
@@ -103,15 +110,15 @@ describe('AuthController', () => {
             );
 
             expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
-            expect(mockResponse.json).toHaveBeenCalledWith({ success: true });
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'login success' });
         });
-
 
         it('should handle auth service errors', async () => {
             mockRequest.body = {
                 email: 'test@example.com',
                 password: 'Password123!'
             };
+            setDeviceInfo(mockRequest);
 
             const error = new Error('Auth failed');
             authService.login.mockRejectedValue(error);
@@ -123,6 +130,7 @@ describe('AuthController', () => {
 
         it('should handle empty request body', async () => {
             mockRequest.body = {};
+            setDeviceInfo(mockRequest);
 
             await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -136,6 +144,7 @@ describe('AuthController', () => {
                 email: 'invalid-email',
                 password: 'Password123!'
             };
+            setDeviceInfo(mockRequest);
 
             authService.login.mockRejectedValue(
                 new ApiError('Invalid email format', StatusCodes.BAD_REQUEST, 'AuthController')
@@ -153,8 +162,12 @@ describe('AuthController', () => {
                 email: 'test@example.com',
                 password: 'Password123!'
             };
-            mockRequest.headers = {};
 
+            mockRequest.headers = {};
+            (mockRequest as any).ip = undefined;
+
+
+            setDeviceInfo(mockRequest);
 
             const mockTokens = {
                 accessToken: 'access-token',
@@ -171,7 +184,7 @@ describe('AuthController', () => {
                 'Password123!',
                 expect.objectContaining({
                     userAgent: 'Unknown',
-                    ip: '127.0.0.1'
+                    ip: 'Unknown'
                 })
             );
         });
@@ -194,12 +207,14 @@ describe('AuthController', () => {
             });
 
             it('should use rawDeviceInfo.ip when available', async () => {
+                // הקצאה מחדש של mockRequest עם נתונים ספציפיים
                 mockRequest = {
                     body: credentials,
                     headers: { 'user-agent': 'test-agent' },
                     ip: '192.168.1.1',
                     cookies: {}
                 };
+                setDeviceInfo(mockRequest);
 
                 await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -207,17 +222,21 @@ describe('AuthController', () => {
                     credentials.email,
                     credentials.password,
                     expect.objectContaining({
-                        ip: '192.168.1.1'
+                        ip: '192.168.1.1',
+                        userAgent: 'test-agent'
                     })
                 );
             });
 
             it('should use "Unknown" when IP is undefined', async () => {
+                // הגדרה בה אין ip וגם אין user-agent
                 mockRequest = {
                     body: credentials,
                     headers: {},
                     cookies: {}
                 };
+                // מכיוון ש-ip חסר, הפונקציה תגדיר אותו כ-"Unknown"
+                setDeviceInfo(mockRequest);
 
                 await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -225,7 +244,8 @@ describe('AuthController', () => {
                     credentials.email,
                     credentials.password,
                     expect.objectContaining({
-                        ip: 'Unknown'
+                        ip: 'Unknown',
+                        userAgent: 'Unknown'
                     })
                 );
             });
@@ -242,7 +262,7 @@ describe('AuthController', () => {
             expect(mockResponse.clearCookie).toHaveBeenNthCalledWith(1, 'access_token');
             expect(mockResponse.clearCookie).toHaveBeenNthCalledWith(2, 'refresh_token');
             expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.OK);
-            expect(mockResponse.json).toHaveBeenCalledWith({ success: true });
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'logout success' });
         });
 
         it('should handle missing refresh token', async () => {
@@ -261,7 +281,6 @@ describe('AuthController', () => {
             mockRequest.cookies = { 'refresh_token': 'valid-token' };
             const error = new Error('Logout failed');
             jwtService.revokeToken.mockRejectedValue(error);
-
 
             await authController.logout(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -308,7 +327,7 @@ describe('AuthController', () => {
                 secure: false,
                 sameSite: 'strict'
             });
-            expect(mockResponse.json).toHaveBeenCalledWith({ success: true });
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'refresh success' });
         });
 
         it('should handle missing refresh token', async () => {

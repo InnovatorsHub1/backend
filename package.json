@@ -84,5 +84,5 @@
     "uuid": "^11.0.5",
     "winston": "^3.11.0",
     "winston-elasticsearch": "^0.17.4"
-  }  
+  }
 }

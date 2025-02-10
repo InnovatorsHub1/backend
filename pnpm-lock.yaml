@@ -120,6 +120,9 @@ importers:
         specifier: ^0.17.4
         version: 0.17.4
     devDependencies:
+      '@jest/types':
+        specifier: ^29.6.3
+        version: 29.6.3
       '@types/bcrypt':
         specifier: ^5.0.2
         version: 5.0.2

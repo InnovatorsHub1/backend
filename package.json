@@ -10,12 +10,15 @@
     "lint:fix": "eslint 'src/*/.ts' --fix",
     "prettier:check": "prettier --check 'src/*/.{ts,json}'",
     "prettier:fix": "prettier --write 'src/*/.{ts,json}'",
-    "test:unit": "jest --config jest.config.ts"
+    "test:unit": "jest --config jest.config.ts",
+    "test:integration": "jest --config jest.config.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@jest/types": "^29.6.3",
+    "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/cookie-session": "^2.0.48",
     "@types/cors": "^2.8.17",
@@ -51,6 +54,7 @@
     "@types/reflect-metadata": "^0.0.5",
     "@types/uuid": "^10.0.0",
     "axios": "^1.6.5",
+    "bcrypt": "^5.1.1",
     "compression": "^1.7.5",
     "cookie-session": "^2.1.0",
     "cors": "^2.8.5",
@@ -80,5 +84,5 @@
     "uuid": "^11.0.5",
     "winston": "^3.11.0",
     "winston-elasticsearch": "^0.17.4"
-  }
+  }  
 }

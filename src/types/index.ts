@@ -10,7 +10,7 @@ export interface IErrorResponse {
 
 export interface ILogger {
   info(message: string, meta?: LogMeta): void;
-  error(message: string, meta?: LogMeta): void;
+  error(message: string,  error?: Error, meta?: LogMeta): void;
   warn(message: string, meta?: LogMeta): void;
   debug(message: string, meta?: LogMeta): void;
 }

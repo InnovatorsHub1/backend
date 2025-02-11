@@ -4,7 +4,7 @@ import passport from 'passport';
 import { createValidator } from '@gateway/middleware/validate-request.middleware';
 
 import { TYPES } from '../core/di/types';
-import { AuthController, RequestWithUser } from '../controllers/auth.controller';
+import { AuthController } from '../controllers/auth.controller';
 
 @injectable()
 export class AuthRoutes {
@@ -20,18 +20,18 @@ export class AuthRoutes {
       headers: ['x-api-key'],
       query: ['version'],
     });
-
-    this.router.post('/google', googleCheckValidator, (req, res) =>
-      this.controller.googleGenerateAuthUrl(req as RequestWithUser, res),
+    // TODO - what I need to here ??
+    this.router.post('/google', this.controller.googleGenerateAuthUrl.bind(this.controller),
     );
 
     this.router.get('/google/callback',
       passport.authenticate('google', { failureRedirect: '/login' }),
-      (req, res) => this.controller.googleCallback(req as RequestWithUser, res),
+      this.controller.googleCallback.bind(this.controller),
     );
 
-    this.router.get('/google/user-data/:accessToken', googleCheckValidator,
-      (req, res) => this.controller.getUserDataByAccessToken(req as RequestWithUser, res),
+    this.router.get('/google/user-data/:accessToken',
+      googleCheckValidator,
+      this.controller.getUserDataByAccessToken.bind(this.controller),
     );
   }
 }

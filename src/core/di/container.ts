@@ -2,6 +2,9 @@ import 'reflect-metadata';
 import { Container } from 'inversify';
 import express, { Application } from 'express';
 import { RetryService } from '@gateway/services/retry.service';
+import { AuthService } from '@gateway/services/auth.service';
+import { AuthController } from '@gateway/controllers/auth.controller';
+import { AuthRoutes } from '@gateway/routes/auth.routes';
 
 import { ValidationService } from '../validation/validation.service';
 import { HealthService } from '../../services/health.service';
@@ -34,5 +37,8 @@ container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
 container.bind<RetryService>(TYPES.RetryService).to(RetryService);
+container.bind<AuthService>(TYPES.AuthService).to(AuthService);
+container.bind<AuthController>(TYPES.AuthController).to(AuthController);
+container.bind<AuthRoutes>(TYPES.AuthRoutes).to(AuthRoutes);
 
 export { container };

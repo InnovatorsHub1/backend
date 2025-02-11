@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { injectable, inject } from 'inversify';
+import passport from 'passport';
 import { createValidator } from '@gateway/middleware/validate-request.middleware';
 
 import { TYPES } from '../core/di/types';
-import { AuthController } from '../controllers/auth.controller';
+import { AuthController, RequestWithUser } from '../controllers/auth.controller';
 
 @injectable()
 export class AuthRoutes {
@@ -20,7 +21,17 @@ export class AuthRoutes {
       query: ['version'],
     });
 
-    this.router.post('/google', googleCheckValidator, this.controller.googleGenerateAuthUrl.bind(this.controller));
-    this.router.get('/google/user-data/:accessToken', googleCheckValidator, this.controller.getUserDataByAccessToken.bind(this.controller));
+    this.router.post('/google', googleCheckValidator, (req, res) =>
+      this.controller.googleGenerateAuthUrl(req as RequestWithUser, res),
+    );
+
+    this.router.get('/google/callback',
+      passport.authenticate('google', { failureRedirect: '/login' }),
+      (req, res) => this.controller.googleCallback(req as RequestWithUser, res),
+    );
+
+    this.router.get('/google/user-data/:accessToken', googleCheckValidator,
+      (req, res) => this.controller.getUserDataByAccessToken(req as RequestWithUser, res),
+    );
   }
 }

@@ -8,7 +8,8 @@ import { WinstonLogger } from '../core/logger/winston.logger';
 import { GoogleUser } from '../types/auth.types';
 import { ApiError } from '../core/errors/api.error';
 
-interface RequestWithUser extends Request {
+// TODO - part 2 here you extend the request but it failed on part 1
+export interface RequestWithUser extends Request {
   user?: GoogleUser;
 }
 
@@ -20,10 +21,10 @@ export class AuthController {
   googleGenerateAuthUrl = async (_req: RequestWithUser, res: Response): Promise<void> => {
     try {
       const authUrl = await this.authService.generateAuthUrl();
-      res.status(StatusCodes.CREATED).json(authUrl);
+      res.status(StatusCodes.OK).json({ url: authUrl });
     } catch (error) {
-      this.logger.error('Health check failed', error);
-      throw new ApiError('Health check failed', StatusCodes.INTERNAL_SERVER_ERROR, 'HealthController');
+      this.logger.error('Failed to generate auth URL', error);
+      throw new ApiError('Failed to generate auth URL', StatusCodes.INTERNAL_SERVER_ERROR, 'AuthController');
     }
   };
 
@@ -31,10 +32,22 @@ export class AuthController {
     const { accessToken } = req.params;
     try {
       const userData = await this.authService.getUserData(accessToken);
-      res.status(StatusCodes.OK).json(userData);
+      res.status(StatusCodes.OK).json({ user: userData });
     } catch (error) {
-      this.logger.error('Health check failed', error);
-      throw new ApiError('Health check failed', StatusCodes.INTERNAL_SERVER_ERROR, 'HealthController');
+      this.logger.error('Failed to get user data', error);
+      throw new ApiError('Failed to get user data', StatusCodes.INTERNAL_SERVER_ERROR, 'AuthController');
+    }
+  };
+
+  googleCallback = async (req: RequestWithUser, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        throw new ApiError('No user data received', StatusCodes.UNAUTHORIZED, 'AuthController');
+      }
+      res.status(StatusCodes.OK).json({ user: req.user });
+    } catch (error) {
+      this.logger.error('Google callback failed', error);
+      throw new ApiError('Google callback failed', StatusCodes.INTERNAL_SERVER_ERROR, 'AuthController');
     }
   };
 }

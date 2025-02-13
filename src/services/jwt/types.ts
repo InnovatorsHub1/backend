@@ -1,17 +1,22 @@
 import { type BaseDocument } from "@gateway/repositories/BaseRepository";
 
-export type RefreshTokenPayload = {
+export interface RefreshTokenPayload {
     sub: string;
-    role: string;
-    exp: number;
-    jti: string;
-};
+    permissions: string[];
+    exp?: number;
+    jti?: string;
+}
 
-export type AccessTokenPayload = Omit<RefreshTokenPayload, 'jti'>;
+export interface AccessTokenPayload {
+    sub: string;
+    deviceInfo?: any;
+    permissions: string[];
+}
 
 export interface JtiDocument extends BaseDocument {
     Jti: string;
     expiresAt: Date;
+    userId: string;
 }
 
 

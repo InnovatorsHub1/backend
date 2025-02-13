@@ -18,6 +18,9 @@ const getConfig = (): IConfig => ({
   jwtPrivateKeyPath: process.env.JWT_PRIVATE_KEY_PATH,
   jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
   jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h',
+  emailSender: process.env.EMAIL_SENDER || " ",
+  emailPrivateKey: process.env.EMAIL_PRIVATE_KEY || " " 
+
 });
 
 const validateConfig = (config: IConfig): void => {

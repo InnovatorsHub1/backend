@@ -28,5 +28,8 @@ export interface IConfig {
   jwtPrivateKeyPath: string | undefined;
   jwtAccessExpiration: string | number;
   jwtRefreshExpiration: string | number;
+  emailSender: string;
+  emailPrivateKey: string;
+
 }
 

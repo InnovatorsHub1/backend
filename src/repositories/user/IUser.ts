@@ -14,6 +14,7 @@ interface IBaseUser extends BaseDocument {
         phoneNumber?: string;
     };
     role: string;
+    roleExp: Date;
     permissions: string[];
     isActive: boolean;
 }

@@ -33,21 +33,22 @@ export class UserRepository extends BaseRepository<IUser> {
 
 
     async findByEmail(email: string): Promise<ICredentialsUser | null> {
-        return this.findOne({ email }) as Promise<ICredentialsUser> | null;
+        const user = await this.collection.findOne({ email: email.toLowerCase() }) as Promise<ICredentialsUser> | null;
+        return user;
     }
 
 
     async findById(id: string): Promise<IUser | null> {
         return this.runWithErrorHandling(async () => {
-            const objectId = new ObjectId(id);
-            return await this.findOne({ _id: objectId });
+            const user = await this.findOne({ _id: new ObjectId(id) });
+            return user;
         });
     }
 
 
     async findByProvider(provider: ISSOUser['provider'], providerId: string): Promise<IUser | null> {
         return this.runWithErrorHandling(async () => {
-            return this.findOne({ provider, providerId });
+            return await this.findOne({ provider, providerId });
         });
     }
 
@@ -104,7 +105,6 @@ export class UserRepository extends BaseRepository<IUser> {
             await this.collection.updateOne(
                 { _id: new ObjectId(userId) } as Condition<IUser>,
                 {
-
                     $set: { lastActiveAt: new Date() },
                     $currentDate: { updatedAt: true }
                 }
@@ -140,5 +140,4 @@ export class UserRepository extends BaseRepository<IUser> {
             await this.collection.deleteMany(filter);
         });
     }
-
 } 

@@ -61,15 +61,36 @@ curl http://localhost:3000/api/health \
 
 ### Authentication Routes
 
-#### Login
+#### Signup
 
 ```bash
 curl -X POST \
+  http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "Yourpassword2@",
+    "firstName": "John",
+    "lastName": "Doe",
+    "phoneNumber": "+1234567890"    
+  }'
+```
+#### Response:
+
+```json
+{
+  "message": "signup success"
+}
+```
+#### Login
+
+```bash
+curl -c cookies.txt -X POST \
   http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "password": "yourpassword"
+    "password": "Yourpassword2@"
   }'
 ```
 #### Response:
@@ -83,7 +104,7 @@ curl -X POST \
 #### Refresh
 
 ```bash
-curl -X POST \
+curl --cookie cookies.txt --cookie-jar cookies.txt -X POST \
   http://localhost:3000/api/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -99,7 +120,7 @@ curl -X POST \
 #### Logout
 
 ```bash
-curl -X POST \
+curl --cookie cookies.txt -X POST \
   http://localhost:3000/api/auth/logout \
   -H "Content-Type: application/json" \
   -d '{}'

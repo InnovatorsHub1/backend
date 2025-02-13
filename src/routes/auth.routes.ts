@@ -4,12 +4,13 @@ import { createValidator } from '@gateway/middleware/validate-request.middleware
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../core/di/types';
 
+
 @injectable()
 export class AuthRoutes {
     public router: Router;
 
     constructor(
-        @inject(TYPES.AuthController) private readonly controller: AuthController
+        @inject(TYPES.AuthController) private readonly controller: AuthController,
     ) {
         this.router = Router();
         this.setupRoutes();
@@ -19,6 +20,16 @@ export class AuthRoutes {
         const loginValidator = createValidator({
             body: ['email', 'password']
         });
+
+        const signupValidator = createValidator({
+            body: ['email', 'password']
+        });
+
+        this.router.post(
+            '/signup',
+            signupValidator,
+            this.controller.signup.bind(this.controller)
+        );
 
         this.router.post(
             '/login',

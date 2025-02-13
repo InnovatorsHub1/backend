@@ -8,16 +8,20 @@ import { StandardValidators } from '@gateway/core/validation/validators';
 @injectable()
 
 export class PasswordService {
-    private readonly SALT_ROUNDS = 10;
+    private readonly SALT_ROUNDS = 12;
 
 
     async hashPassword(password: string): Promise<string> {
         this.validatePassword(password);
-        return bcrypt.hash(password, this.SALT_ROUNDS);
+        const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
+        if (!hashedPassword) {
+            throw new ApiError('Failed to hash password', StatusCodes.INTERNAL_SERVER_ERROR, 'PasswordService');
+        }
+        return hashedPassword;
     }
 
     async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
-        return bcrypt.compare(plainPassword, hashedPassword);
+        return await bcrypt.compare(plainPassword, hashedPassword);
     }
 
     private validatePassword(password: string): void {
@@ -26,7 +30,4 @@ export class PasswordService {
             throw new ApiError('Invalid password format', StatusCodes.BAD_REQUEST, 'PasswordService');
         }
     }
-
-
-
 }

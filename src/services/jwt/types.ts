@@ -11,12 +11,12 @@ export interface AccessTokenPayload {
     sub: string;
     deviceInfo?: any;
     permissions: string[];
-    exp?: number;
 }
 
 export interface JtiDocument extends BaseDocument {
     Jti: string;
     expiresAt: Date;
+    userId: string;
 }
 
 

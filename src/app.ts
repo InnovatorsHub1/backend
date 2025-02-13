@@ -10,7 +10,7 @@ import { requestLogger } from './middleware/request-logger.middleware';
 import { injectable, inject } from 'inversify';
 import { TYPES } from './core/di/types';
 import { deviceInfoMiddleware } from './middleware/request-device-info.middlware';
-
+import cookieParser from 'cookie-parser';
 const logger = new WinstonLogger('App');
 
 @injectable()
@@ -37,6 +37,7 @@ export class App {
     setupSecurityMiddleware(this.app);
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
   }
 
   private initializeRoutes(): void {

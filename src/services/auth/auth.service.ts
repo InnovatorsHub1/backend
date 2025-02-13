@@ -4,10 +4,12 @@ import { PasswordService } from './password.service';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import { SessionService } from '@gateway/services/auth/session.service';
-import { JwtService } from '@gateway/services/jwt/index';
+import { JwtService } from '@gateway/services/jwt/jwt.service';
 import { Request } from 'express';
 import { StandardValidators } from '@gateway/core/validation/validators';
 import { LoginResponse } from '@gateway/services/auth/types';
+import { TYPES } from '@gateway/core/di/types';
+import { ICredentialsUser, IUser } from '@gateway/repositories/user/IUser';
 
 
 @injectable()
@@ -15,13 +17,13 @@ import { LoginResponse } from '@gateway/services/auth/types';
 export class AuthService {
 
     constructor(
-        @inject('UserRepository') private userRepository: UserRepository,
-        @inject('PasswordService') private passwordService: PasswordService,
-        @inject('SessionService') private sessionService: SessionService,
-        @inject('JwtService') private jwtService: JwtService
+        @inject(TYPES.UserRepository) private userRepository: UserRepository,
+        @inject(TYPES.PasswordService) private passwordService: PasswordService,
+        @inject(TYPES.SessionService) private sessionService: SessionService,
+        @inject(TYPES.JwtService) private jwtService: JwtService
     ) { }
 
-    private async runWithErrorHandling<T>(operation: () => Promise<T>, errorMessage: string): Promise<T> {
+    private async runWithErrorHandling<T>(operation: () => Promise<T | Promise<T>>, errorMessage: string): Promise<T> {
         try {
             return await operation();
         } catch (error) {
@@ -42,12 +44,35 @@ export class AuthService {
         }
     }
 
+    async signup(reqBody: Partial<ICredentialsUser>): Promise<ICredentialsUser> {
+
+        this.validateEmail(reqBody.email!);
+        const userExists = await this.userRepository.findByEmail(reqBody.email!);
+        if (userExists) {
+            throw new ApiError('User already exists', StatusCodes.BAD_REQUEST, 'AuthService');
+        }
+        const hashedPassword = await this.passwordService.hashPassword(reqBody.password!);
+        const user = this.userRepository.create({
+            email: reqBody.email,
+            password: hashedPassword,
+            profile: reqBody.profile,
+            role: 'user',
+            roleExp: reqBody.roleExp || new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+            permissions: reqBody.permissions || ['read'],
+            isActive: true,
+            isEmailVerified: false,
+            lastActiveAt: new Date()
+        });
+        if (!user) {
+            throw new ApiError('Failed to create user', StatusCodes.INTERNAL_SERVER_ERROR, 'AuthService');
+        }
+        return user as unknown as ICredentialsUser;
+    }
+
     async login(email: string, password: string, deviceInfo?: Request['deviceInfo']): Promise<LoginResponse> {
         this.validateEmail(email);
-
-
         const user = await this.runWithErrorHandling(
-            () => this.userRepository.findByEmail(email),
+            () => this.userRepository.findByEmail(email.toLowerCase()),
             'Failed to fetch user'
         );
 
@@ -60,7 +85,6 @@ export class AuthService {
         }
 
         const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
-
         if (!isPasswordValid) {
             await this.runWithErrorHandling(
                 () => this.handleFailedLogin(user._id!.toString()),
@@ -72,7 +96,7 @@ export class AuthService {
         await this.runWithErrorHandling(
             async () => {
                 await this.handleSuccessfulLogin(user._id!.toString());
-                await this.sessionService.createSession(user._id!.toString(), deviceInfo as Request['deviceInfo']);
+                await this.sessionService.createSession(user as IUser, deviceInfo as Request['deviceInfo']);
             },
             'Failed to complete login process'
         );

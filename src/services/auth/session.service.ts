@@ -1,19 +1,19 @@
 import { inject, injectable } from 'inversify';
-import { JwtService } from '@gateway/services/jwt/index';
+import { JwtService } from '@gateway/services/jwt/jwt.service';
 import { UserRepository } from '@gateway/repositories/user/UserRepository';
-import { AccessTokenPayload } from '@gateway/services/jwt/types';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import { Request } from 'express';
-import { LoginResponse } from '@gateway/services/auth/types';
-
+import { TYPES } from '@gateway/core/di/types';
+import { IUser } from '@gateway/repositories/user/IUser';
 
 
 @injectable()
+
 export class SessionService {
     constructor(
-        @inject('JwtService') private jwtService: JwtService,
-        @inject('UserRepository') private userRepository: UserRepository
+        @inject(TYPES.JwtService) private jwtService: JwtService,
+        @inject(TYPES.UserRepository) private userRepository: UserRepository
     ) { }
 
     private async runWithErrorHandling<T>(operation: () => Promise<T>, errorMessage: string): Promise<T> {
@@ -27,29 +27,8 @@ export class SessionService {
         }
     }
 
-    async createSession(userId: string, deviceInfo: Request['deviceInfo']): Promise<LoginResponse> {
-        const user = await this.runWithErrorHandling(
-            () => this.userRepository.findById(userId),
-            'Failed to fetch user'
-
-        );
-
-        if (!user) {
-            throw new ApiError('User not found', StatusCodes.NOT_FOUND, 'SessionService');
-        }
-
-        await this.userRepository.updateActivity(userId);
-
-        const payload: AccessTokenPayload = {
-            permissions: user.permissions,
-            sub: userId,
-            deviceInfo
-        };
-        return {
-            accessToken: this.jwtService.generateToken(payload),
-            refreshToken: await this.jwtService.generateRefreshToken(payload),
-            id: user._id!.toString()
-        }
+    async createSession(user: IUser, deviceInfo: Request['deviceInfo']): Promise<void> {
+        await this.userRepository.updateActivity(user._id!.toString());
     }
 
     validateSession(token: string): boolean {

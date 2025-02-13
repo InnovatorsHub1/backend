@@ -6,10 +6,13 @@ import { StatusCodes } from 'http-status-codes';
 import { AccessTokenPayload, JtiDocument, RefreshTokenPayload } from './types';
 import { IMongoConnection, mongoConnection } from '@gateway/utils/mongoConnection';
 import { randomUUID } from 'crypto';
+import { injectable, optional, unmanaged } from 'inversify';
+
 
 /**
  * Service for handling JWT tokens with refresh token support
  */
+@injectable()
 export class JwtService {
     private publicKey!: string;
     private privateKey!: string;
@@ -19,10 +22,8 @@ export class JwtService {
     private readonly verifyOptions = { algorithms: ['RS256'] };
     private readonly MAX_CONCURRENT_SESSIONS = 5;
 
-
-
-    constructor(db: IMongoConnection = mongoConnection) {
-        this.db = db;
+    constructor(@optional() @unmanaged() db?: IMongoConnection) {
+        this.db = db || mongoConnection;
         this.initializeService();
     }
 
@@ -54,8 +55,6 @@ export class JwtService {
         }
     }
 
-
-
     private jtiCollection() {
         return this.db.getClient().db().collection<JtiDocument>('jti');
     }
@@ -73,15 +72,18 @@ export class JwtService {
         }
     }
 
-    private async runWithErrorHandling<T>(fn: () => Promise<T>): Promise<T> {
+    async runWithErrorHandling<T>(fn: () => Promise<T>): Promise<T> {
         try {
             return await fn();
         } catch (error: any) {
-            throw new ApiError(error.message || 'JWT Service Error', StatusCodes.INTERNAL_SERVER_ERROR, 'JwtService');
+            this.mapJwtError(error);
         }
     }
 
     private mapJwtError(error: unknown): never {
+        if (error instanceof ApiError) {
+            throw error;
+        }
         if (error instanceof TokenExpiredError) {
             throw new ApiError('Token expired', StatusCodes.UNAUTHORIZED, 'JwtService');
         }
@@ -121,7 +123,8 @@ export class JwtService {
         const collection = this.jtiCollection();
         const activeSessions = await collection.countDocuments({
             isDeleted: false,
-            expiresAt: { $gt: new Date() }
+            expiresAt: { $gt: new Date() },
+            userId: userId
         });
 
         if (activeSessions >= this.MAX_CONCURRENT_SESSIONS) {
@@ -132,10 +135,12 @@ export class JwtService {
     public generateToken(payload: AccessTokenPayload): string {
         this.validatePayload(payload);
         try {
-            return sign(payload, this.privateKey, {
+            const token = sign(payload, this.privateKey, {
                 algorithm: 'RS256',
                 expiresIn: this.accessExpiration
             } as SignOptions);
+
+            return token;
         } catch (error) {
             this.mapJwtError(error);
         }
@@ -158,6 +163,7 @@ export class JwtService {
             await this.jtiCollection().insertOne({
                 _id: jti,
                 Jti: jti,
+                userId: payload.sub,
                 expiresAt: new Date(Date.now() + this.parseExpiration(this.refreshExpiration)),
                 isDeleted: false,
                 createdAt: new Date(),
@@ -181,6 +187,7 @@ export class JwtService {
     public async verifyRefreshToken(token: string): Promise<JwtPayload> {
         try {
             const decoded = verify(token, this.publicKey, this.verifyOptions as VerifyOptions) as JwtPayload;
+
             if (!decoded || typeof decoded === 'string') {
                 throw new ApiError('Invalid refresh token', StatusCodes.UNAUTHORIZED, 'JwtService');
             }
@@ -190,28 +197,35 @@ export class JwtService {
             }
 
             const isValid = await this.jtiCollection().findOne({ _id: decoded.jti });
+
             if (!isValid) {
                 throw new ApiError('Invalid refresh token', StatusCodes.UNAUTHORIZED, 'JwtService');
             }
-
             return decoded;
         } catch (error) {
             this.mapJwtError(error);
         }
     }
 
-    public async refreshTokens(refreshToken: string): Promise<string> {
+    public async refreshTokens(refreshToken: string): Promise<{ accessToken: string, refreshToken: string }> {
         const decoded = await this.verifyRefreshToken(refreshToken);
-        return this.generateToken({
+        const accessToken = this.generateToken({
             sub: decoded.sub!,
             permissions: decoded.permissions,
-            exp: decoded.exp!
         });
+        const newRefreshToken = await this.generateRefreshToken({
+            sub: decoded.sub!,
+            permissions: decoded.permissions,
+        });
+        await this.revokeToken(refreshToken);
+
+        return { accessToken, refreshToken: newRefreshToken };
     }
 
-    public async revokeToken(jti: string): Promise<void> {
+    public async revokeToken(refreshToken: string): Promise<void> {
         return this.runWithErrorHandling(async () => {
-            const result = await this.jtiCollection().deleteOne({ _id: jti });
+            const payload = await this.verifyRefreshToken(refreshToken);
+            const result = await this.jtiCollection().deleteOne({ _id: payload.jti! });
             if (result.deletedCount === 0) {
                 throw new ApiError('Token not found', StatusCodes.NOT_FOUND, 'JwtService');
             }

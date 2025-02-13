@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction, CookieOptions } from 'express';
-import { AuthService } from '@gateway/services/auth/auth.service';
-import { JwtService } from '@gateway/services/jwt';
+import { AuthService } from '../services/auth/auth.service';
+import { JwtService } from '../services/jwt/jwt.service';
 import { injectable, inject } from 'inversify';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '@gateway/core/errors/api.error';
+import { TYPES } from '@gateway/core/di/types';
 
 
 @injectable()
@@ -16,18 +17,30 @@ export class AuthController {
     };
 
     constructor(
-        @inject('AuthService') private authService: AuthService,
-        @inject('JwtService') private jwtService: JwtService
-
+        @inject(TYPES.AuthService) private authService: AuthService,
+        @inject(TYPES.JwtService) private jwtService: JwtService,
     ) { }
+
+    public async signup(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { email, password, firstName, lastName, phoneNumber } = req.body;
+
+            await this.authService.signup({ email, password, profile: { firstName, lastName, phoneNumber } });
+            const { accessToken, refreshToken } = await this.authService.login(email, password);
+            res.cookie('access_token', accessToken, this.configCookie as CookieOptions);
+            res.cookie('refresh_token', refreshToken, this.configCookie as CookieOptions);
+
+            res.status(StatusCodes.CREATED).json({ message: 'User created successfully' });
+
+
+        } catch (error) {
+            next(error);
+        }
+    }
 
     public async login(req: Request, res: Response, next: NextFunction) {
         try {
             const { email, password } = req.body;
-
-            if (!email || !password) {
-                throw new ApiError('Email and password are required', StatusCodes.UNPROCESSABLE_ENTITY, 'AuthController');
-            }
 
             const deviceInfo = req.deviceInfo;
 
@@ -55,9 +68,9 @@ export class AuthController {
                 return;
             }
 
-            const newAccessToken = await this.jwtService.refreshTokens(refreshToken);
-
-            res.cookie('access_token', newAccessToken, this.configCookie as CookieOptions);
+            const { accessToken, refreshToken: newRefreshToken } = await this.jwtService.refreshTokens(refreshToken);
+            res.cookie('access_token', accessToken, this.configCookie as CookieOptions);
+            res.cookie('refresh_token', newRefreshToken, this.configCookie as CookieOptions);
 
             res.json({ message: 'refresh success' });
         } catch (error) {

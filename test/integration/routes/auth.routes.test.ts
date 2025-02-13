@@ -10,7 +10,7 @@ jest.mock('@gateway/middleware/validate-request.middleware', () => ({
             const missingFields: string[] = [];
             if (schema.body && Array.isArray(schema.body)) {
                 schema.body.forEach((field: string) => {
-                    if (!req.body || !(field in req.body)) {
+                    if (!req.body || !req.body[field] || req.body[field].trim() === '') {
                         missingFields.push(field);
                     }
                 });
@@ -31,6 +31,7 @@ describe('AuthRoutes', () => {
     beforeEach(() => {
 
         authController = {
+            signup: jest.fn((req, res) => res.status(200).json({ message: 'signup success' })),
             login: jest.fn((req, res) => res.status(200).json({ message: 'login success' })),
             refresh: jest.fn((req, res) => res.status(200).json({ message: 'refresh success' })),
             logout: jest.fn((req, res) => res.status(200).json({ message: 'logout success' }))
@@ -43,6 +44,33 @@ describe('AuthRoutes', () => {
         app = express();
         app.use(express.json());
         app.use('/auth', authRoutes.router);
+    });
+
+    it('should call controller.signup on POST /auth/signup with valid body', async () => {
+        const payload = { email: 'test@example.com', password: 'secret' };
+
+        const response = await request(app)
+            .post('/auth/signup')
+            .send(payload)
+            .expect(200);
+
+        expect(response.body).toEqual({ message: 'signup success' });
+        expect(authController.signup).toHaveBeenCalled();
+    });
+
+    it('should call controller.signup on POST /auth/signup with missing fields', async () => {
+
+        const payload = { email: 'test@example.com', password: '' };
+
+        const response = await request(app)
+            .post('/auth/signup')
+            .send(payload)
+            .expect(400);
+
+        expect(response.body).toHaveProperty('error');
+        expect(response.body.error).toContain('password');
+
+        expect(authController.signup).not.toHaveBeenCalled();
     });
 
     it('should call controller.login on POST /auth/login with valid body', async () => {

@@ -40,8 +40,9 @@ export const createValidator = (rules: ValidationRules = {}) => {
 
     // Check body fields
     if (rules.body) {
+
       rules.body.forEach(field => {
-        if (!req.body[field]) {
+        if (!req.body[field] || req.body[field].trim() === '') {
           validationErrors.push(`Missing required body field: ${field}`);
         }
       });
@@ -50,16 +51,17 @@ export const createValidator = (rules: ValidationRules = {}) => {
     // Handle errors
     if (authErrors.length > 0) {
       throw new ApiError(
-        authErrors.join(', '), 
-        StatusCodes.UNAUTHORIZED, 
+        authErrors.join(', '),
+        StatusCodes.UNAUTHORIZED,
         'Authentication'
       );
     }
 
     if (validationErrors.length > 0) {
+      console.log(validationErrors);
       throw new ApiError(
-        validationErrors.join(', '), 
-        StatusCodes.BAD_REQUEST, 
+        validationErrors.join(', '),
+        StatusCodes.BAD_REQUEST,
         'Validation'
       );
     }

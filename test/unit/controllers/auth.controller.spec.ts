@@ -1,6 +1,6 @@
 import { AuthController } from '@gateway/controllers/auth.controller';
 import { AuthService } from '@gateway/services/auth/auth.service';
-import { JwtService } from '@gateway/services/jwt';
+import { JwtService } from '@gateway/services/jwt/jwt.service';
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '@gateway/core/errors/api.error';
@@ -8,12 +8,11 @@ import { ApiError } from '@gateway/core/errors/api.error';
 describe('AuthController', () => {
     let authController: AuthController;
     let authService: jest.Mocked<AuthService>;
+    let jwtService: jest.Mocked<JwtService>;
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;
     let mockNext: jest.Mock;
-    let jwtService: jest.Mocked<JwtService>;
 
-    // פונקציה עזר שמוסיפה את deviceInfo לבקשה
     function setDeviceInfo(req: Partial<Request>) {
         (req as any).deviceInfo = {
             ip: req.ip || 'Unknown',
@@ -24,6 +23,7 @@ describe('AuthController', () => {
     beforeEach(() => {
         authService = {
             login: jest.fn(),
+            signup: jest.fn(),
         } as any;
 
         jwtService = {
@@ -44,7 +44,6 @@ describe('AuthController', () => {
             ip: '127.0.0.1'
         };
 
-        // הגדרה ראשונית של deviceInfo על בסיס ip ו־headers
         setDeviceInfo(mockRequest);
 
         mockResponse = {
@@ -67,7 +66,6 @@ describe('AuthController', () => {
             };
 
             mockRequest.body = credentials;
-            // עדכון deviceInfo - חשוב לקרוא לעדכון לפני השימוש
             setDeviceInfo(mockRequest);
 
             const mockTokens = {
@@ -126,17 +124,6 @@ describe('AuthController', () => {
             await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
 
             expect(mockNext).toHaveBeenCalledWith(error);
-        });
-
-        it('should handle empty request body', async () => {
-            mockRequest.body = {};
-            setDeviceInfo(mockRequest);
-
-            await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
-
-            expect(mockNext).toHaveBeenCalledWith(
-                new ApiError('Email and password are required', StatusCodes.UNPROCESSABLE_ENTITY, 'AuthController')
-            );
         });
 
         it('should handle invalid email format', async () => {
@@ -207,7 +194,6 @@ describe('AuthController', () => {
             });
 
             it('should use rawDeviceInfo.ip when available', async () => {
-                // הקצאה מחדש של mockRequest עם נתונים ספציפיים
                 mockRequest = {
                     body: credentials,
                     headers: { 'user-agent': 'test-agent' },
@@ -229,13 +215,11 @@ describe('AuthController', () => {
             });
 
             it('should use "Unknown" when IP is undefined', async () => {
-                // הגדרה בה אין ip וגם אין user-agent
                 mockRequest = {
                     body: credentials,
                     headers: {},
                     cookies: {}
                 };
-                // מכיוון ש-ip חסר, הפונקציה תגדיר אותו כ-"Unknown"
                 setDeviceInfo(mockRequest);
 
                 await authController.login(mockRequest as Request, mockResponse as Response, mockNext);
@@ -317,7 +301,7 @@ describe('AuthController', () => {
         it('should refresh access token successfully', async () => {
             mockRequest.cookies = { 'refresh_token': 'valid-refresh-token' };
             const newAccessToken = 'new-access-token';
-            jwtService.refreshTokens.mockResolvedValue(newAccessToken);
+            jwtService.refreshTokens.mockResolvedValue({ accessToken: newAccessToken, refreshToken: 'new-refresh-token' });
 
             await authController.refresh(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -345,6 +329,90 @@ describe('AuthController', () => {
             jwtService.refreshTokens.mockRejectedValue(error);
 
             await authController.refresh(mockRequest as Request, mockResponse as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
+
+    describe('signup', () => {
+        let credentials: {
+            email: string;
+            password: string;
+            firstName: string;
+            lastName: string;
+            phoneNumber: string;
+        };
+        let signupResponse: any;
+        let loginResponse: { accessToken: string; refreshToken: string };
+
+        beforeEach(() => {
+            credentials = {
+                email: 'test@example.com',
+                password: 'Password123!',
+                firstName: 'Test',
+                lastName: 'User',
+                phoneNumber: '0521234567'
+            };
+
+            signupResponse = {};
+
+            loginResponse = {
+                accessToken: 'access-token',
+                refreshToken: 'refresh-token'
+            };
+
+            mockRequest.body = { ...credentials };
+
+            (authController as any).configCookie = { httpOnly: true, secure: false, sameSite: 'strict' };
+
+            authService.signup.mockResolvedValue(signupResponse);
+            authService.login.mockResolvedValue({ ...loginResponse, id: 'user-123' });
+        });
+
+        it('should signup user, set cookies, and return success message', async () => {
+            await authController.signup(mockRequest as Request, mockResponse as Response, mockNext);
+
+            expect(authService.signup).toHaveBeenCalledWith({
+                email: credentials.email,
+                password: credentials.password,
+                profile: {
+                    firstName: credentials.firstName,
+                    lastName: credentials.lastName,
+                    phoneNumber: credentials.phoneNumber
+                }
+            });
+
+            expect(authService.login).toHaveBeenCalledWith(credentials.email, credentials.password);
+
+            expect(mockResponse.cookie).toHaveBeenCalledWith('access_token', loginResponse.accessToken, {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'strict'
+            });
+            expect(mockResponse.cookie).toHaveBeenCalledWith('refresh_token', loginResponse.refreshToken, {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'strict'
+            });
+
+            expect(mockResponse.status).toHaveBeenCalledWith(StatusCodes.CREATED);
+            expect(mockResponse.json).toHaveBeenCalledWith({ message: 'User created successfully' });
+        });
+
+        it('should call next with error if signup fails', async () => {
+            const error = new Error('Signup failed');
+            authService.signup.mockRejectedValue(error);
+
+            await authController.signup(mockRequest as Request, mockResponse as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+
+        it('should call next with error if login fails', async () => {
+            const error = new Error('Login failed');
+            authService.login.mockRejectedValue(error);
+
+            await authController.signup(mockRequest as Request, mockResponse as Response, mockNext);
 
             expect(mockNext).toHaveBeenCalledWith(error);
         });

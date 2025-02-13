@@ -6,7 +6,7 @@ import { ApiError } from '@gateway/core/errors/api.error';
 import { ObjectId } from 'mongodb';
 import { StatusCodes } from 'http-status-codes';
 import { ICredentialsUser, ISSOUser } from '@gateway/repositories/user/IUser';
-import { JwtService } from '@gateway/services/jwt';
+import { JwtService } from '@gateway/services/jwt/jwt.service';
 import { Request } from 'express';
 
 describe('AuthService', () => {
@@ -20,11 +20,13 @@ describe('AuthService', () => {
             findByEmail: jest.fn(),
             incrementFailedAttempts: jest.fn(),
             resetFailedAttempts: jest.fn(),
-            updateLastLogin: jest.fn()
+            updateLastLogin: jest.fn(),
+            create: jest.fn()
         } as any;
 
         passwordService = {
-            comparePassword: jest.fn()
+            comparePassword: jest.fn(),
+            hashPassword: jest.fn()
         } as any;
 
         sessionService = {
@@ -52,6 +54,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -61,11 +64,7 @@ describe('AuthService', () => {
 
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(true);
-            sessionService.createSession.mockResolvedValue({
-                accessToken: 'token',
-                refreshToken: 'refreshToken',
-                id: mockUser._id!.toString()
-            });
+            sessionService.createSession.mockResolvedValue();
 
             await authService.login('test@example.com', 'Password123@');
 
@@ -93,6 +92,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -119,6 +119,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -144,6 +145,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -172,6 +174,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -186,7 +189,7 @@ describe('AuthService', () => {
             await authService.login('test@example.com', 'password123', deviceInfo as Request['deviceInfo']);
 
             expect(sessionService.createSession).toHaveBeenCalledWith(
-                mockUser._id!.toString(),
+                mockUser,
                 deviceInfo
             );
         });
@@ -202,6 +205,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -230,6 +234,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -257,6 +262,7 @@ describe('AuthService', () => {
                 lastActiveAt: new Date(),
                 profile: {},
                 role: 'user',
+                roleExp: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
                 permissions: [],
                 isActive: true,
                 isDeleted: false,
@@ -297,6 +303,96 @@ describe('AuthService', () => {
             await expect(authService.login('invalid-email', 'password123', mockDeviceInfo))
                 .rejects
                 .toThrow(new ApiError('Invalid email format', StatusCodes.BAD_REQUEST, 'AuthService'));
+        });
+    });
+
+    describe('signup', () => {
+        beforeEach(() => {
+            (authService as any).validateEmail = jest.fn();
+            passwordService.hashPassword = jest.fn();
+            userRepository.create = jest.fn();
+        });
+
+        it('should throw an error if user already exists', async () => {
+            const reqBody: Partial<ICredentialsUser> = {
+                email: 'test@example.com',
+                password: 'Password123@',
+                profile: {}
+            };
+
+            (userRepository.findByEmail as jest.Mock).mockResolvedValue({
+                _id: new ObjectId() as unknown as ObjectId,
+                email: reqBody.email,
+                password: 'hashedPassword',
+            });
+            await expect(authService.signup(reqBody))
+                .rejects
+                .toThrow(new ApiError('User already exists', StatusCodes.CONFLICT, 'AuthService'));
+        });
+
+        it('should successfully signup a user', async () => {
+            const reqBody: Partial<ICredentialsUser> = {
+                email: 'test@example.com',
+                password: 'Password123@',
+                profile: {}
+            };
+
+            (passwordService.hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
+
+            const createdUser = {
+                _id: new ObjectId() as unknown as ObjectId,
+                email: reqBody.email,
+                password: 'hashedPassword',
+                profile: reqBody.profile,
+                role: 'user',
+                roleExp: reqBody.roleExp || new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+                permissions: reqBody.permissions || ['read'],
+                isActive: true,
+                isEmailVerified: false,
+                lastActiveAt: new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            (userRepository.create as jest.Mock).mockReturnValue(createdUser);
+
+            const result = await authService.signup(reqBody);
+
+            expect((authService as any).validateEmail).toHaveBeenCalledWith(reqBody.email);
+            expect(passwordService.hashPassword).toHaveBeenCalledWith(reqBody.password);
+            expect(userRepository.create).toHaveBeenCalled();
+            expect(result).toEqual(createdUser);
+        });
+
+        it('should throw an error if user creation fails', async () => {
+            const reqBody: Partial<ICredentialsUser> = {
+                email: 'fail@example.com',
+                password: 'Password123@',
+                profile: {}
+            };
+
+            (passwordService.hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
+            (userRepository.create as jest.Mock).mockReturnValue(null);
+
+            await expect(authService.signup(reqBody))
+                .rejects
+                .toThrow(new ApiError('Failed to create user', StatusCodes.INTERNAL_SERVER_ERROR, 'AuthService'));
+        });
+
+        it('should throw an error if email validation fails', async () => {
+            const reqBody: Partial<ICredentialsUser> = {
+                email: 'invalid-email',
+                password: 'Password123@',
+                profile: {}
+            };
+
+            (authService as any).validateEmail.mockImplementation(() => {
+                throw new Error('Invalid email format');
+            });
+
+            await expect(authService.signup(reqBody))
+                .rejects
+                .toThrow('Invalid email format');
         });
     });
 }); 

@@ -1,5 +1,5 @@
 import { SessionService } from '@gateway/services/auth/session.service';
-import { JwtService } from '@gateway/services/jwt/index';
+import { JwtService } from '@gateway/services/jwt/jwt.service';
 import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { ObjectId } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
@@ -13,13 +13,10 @@ describe('SessionService', () => {
 
     beforeEach(() => {
         jwtService = {
-            generateToken: jest.fn(),
-            generateRefreshToken: jest.fn(),
             verifyToken: jest.fn()
         } as any;
 
         userRepository = {
-            findById: jest.fn(),
             updateActivity: jest.fn()
         } as any;
 
@@ -27,119 +24,62 @@ describe('SessionService', () => {
     });
 
     describe('createSession', () => {
-        it('should create a session successfully', async () => {
-            const userId = new ObjectId().toString();
-            const deviceInfo: Request['deviceInfo'] = {
-                userAgent: 'Mozilla/5.0',
-                ip: '127.0.0.1',
-                platform: 'Windows',
-                browser: 'Chrome',
-                version: '91.0.4472.124',
-                os: 'Windows 10',
-                device: 'Desktop',
-                manufacturer: 'Unknown',
-                isBot: false,
-                isMobile: false
-            };
-            const mockToken = 'mock-token';
-            const mockRefreshToken = 'mock-refresh-token';
-            userRepository.findById.mockResolvedValue({
-                _id: new ObjectId(userId),
-                role: 'user'
-            } as any);
+        it('should call updateActivity with the user id', async () => {
+            const user = { _id: new ObjectId() } as any;
+            const deviceInfo: Request['deviceInfo'] = { userAgent: 'Mozilla/5.0', ip: '127.0.0.1' };
 
-            jwtService.generateToken.mockReturnValue(mockToken);
-            jwtService.generateRefreshToken.mockResolvedValue(mockRefreshToken);
+            await sessionService.createSession(user, deviceInfo);
 
-            const token = await sessionService.createSession(userId, deviceInfo);
-
-            expect(userRepository.updateActivity).toHaveBeenCalledWith(userId);
-            expect(jwtService.generateToken).toHaveBeenCalledWith(expect.objectContaining({
-                sub: userId,
-                deviceInfo
-            }));
-            expect(token).toEqual({
-                accessToken: mockToken,
-                refreshToken: mockRefreshToken,
-                id: userId
-            });
+            expect(userRepository.updateActivity).toHaveBeenCalledWith(user._id.toString());
         });
 
-        it('should handle partial device info', async () => {
-            const userId = new ObjectId().toString();
-            const deviceInfo: Request['deviceInfo'] = {
-                userAgent: 'Mozilla/5.0',
-                ip: '127.0.0.1'
-            };
+        it('should throw an ApiError if updateActivity fails', async () => {
+            const user = { _id: new ObjectId() } as any;
+            const deviceInfo: Request['deviceInfo'] = { userAgent: 'Mozilla/5.0', ip: '127.0.0.1' };
+            userRepository.updateActivity.mockRejectedValue(new ApiError('update failed', StatusCodes.INTERNAL_SERVER_ERROR, 'SessionService'));
 
-            userRepository.findById.mockResolvedValue({
-                _id: new ObjectId(userId),
-                role: 'user'
-            } as any);
-
-            await sessionService.createSession(userId, deviceInfo);
-
-            expect(jwtService.generateToken).toHaveBeenCalledWith(expect.objectContaining({
-                deviceInfo: expect.objectContaining({
-                    userAgent: 'Mozilla/5.0',
-                    ip: '127.0.0.1'
-                })
-            }));
-        });
-
-        it('should throw when user not found', async () => {
-            const userId = new ObjectId().toString();
-            userRepository.findById.mockResolvedValue(null);
-
-            await expect(sessionService.createSession(userId, {} as Request['deviceInfo']))
-                .rejects
-                .toThrow(ApiError);
-        });
-
-        it('should rethrow ApiError', async () => {
-            const apiError = new ApiError('Test error', StatusCodes.BAD_REQUEST, 'SessionService');
-            userRepository.findById.mockRejectedValue(apiError);
-
-            await expect(sessionService.createSession('userId', {} as Request['deviceInfo']))
-                .rejects
-                .toThrow(apiError);
+            await expect(sessionService.createSession(user, deviceInfo))
+                .rejects.toThrow(ApiError);
         });
     });
 
     describe('validateSession', () => {
-        it('should return true for valid token', () => {
-            jwtService.verifyToken.mockReturnValue({ sub: 'userId' });
-
+        it('should return true if verifyToken returns a valid payload', () => {
+            jwtService.verifyToken.mockReturnValue({ sub: 'user123' });
             const result = sessionService.validateSession('valid-token');
-
             expect(result).toBe(true);
         });
 
-        it('should return false for invalid token', () => {
-            jwtService.verifyToken.mockImplementation(() => {
-                throw new Error('Invalid token');
-            });
-
+        it('should return false if verifyToken throws an error', () => {
+            jwtService.verifyToken.mockImplementation(() => { throw new Error('invalid token'); });
             const result = sessionService.validateSession('invalid-token');
+            expect(result).toBe(false);
+        });
 
+        it('should return false if verifyToken returns an invalid payload', () => {
+            jwtService.verifyToken.mockReturnValue({});
+            const result = sessionService.validateSession('token-without-sub');
             expect(result).toBe(false);
         });
     });
 
     describe('updateActivity', () => {
-        it('should update user activity', async () => {
-            const userId = 'test-user-id';
-
+        it('should call updateActivity on the userRepository with the provided userId', async () => {
+            const userId = 'user123';
             await sessionService.updateActivity(userId);
-
             expect(userRepository.updateActivity).toHaveBeenCalledWith(userId);
         });
 
-        it('should throw when update fails', async () => {
-            const userId = 'test-user-id';
-            userRepository.updateActivity.mockRejectedValue(new Error('Update failed'));
+        it('should throw an ApiError if updateActivity fails', async () => {
+            const userId = 'user123';
+            userRepository.updateActivity.mockRejectedValue(new Error('failed'));
+            await expect(sessionService.updateActivity(userId)).rejects.toThrow(ApiError);
+        });
+    });
 
-            await expect(sessionService.updateActivity(userId))
+    describe('runWithErrorHandling', () => {
+        it('should throw ApiError', async () => {
+            await expect((sessionService as any).runWithErrorHandling(() => Promise.reject(new ApiError('test error', StatusCodes.BAD_REQUEST, 'SessionService'))))
                 .rejects
                 .toThrow(ApiError);
         });

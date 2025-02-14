@@ -4,7 +4,7 @@ const config: Config.InitialOptions = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   verbose: true,
-  coverageDirectory: '/tmp/coverage',  
+  coverageDirectory: '/tmp/coverage',
   collectCoverage: true,
   testPathIgnorePatterns: ['/node_modules/'],
   transform: {
@@ -30,7 +30,7 @@ const config: Config.InitialOptions = {
       statements: 1
     }
   },
-  coverageReporters: ['text', 'text-summary'], 
+  coverageReporters: ['text', 'text-summary'],
   moduleNameMapper: {
     '^@gateway/(.*)$': '<rootDir>/src/$1',
   },

@@ -15,8 +15,7 @@ class MongoConnection implements IMongoConnection {
 
   async connect(): Promise<void> {
     try {
-      this.client = new MongoClient(process.env.MONGO_URI!);
-      await this.client.connect();
+      this.client = await MongoClient.connect(process.env.MONGO_URI!);
       this.logger.info('Connected to MongoDB');
     } catch (error) {
       this.logger.error('MongoDB connection failed', error);

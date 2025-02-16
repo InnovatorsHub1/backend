@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { inject, injectable } from 'inversify';
 import { QueueService } from '../services/queue.service';
 import { TYPES } from '../core/di/types';
+import { StatusCodes } from 'http-status-codes';
+
 
 @injectable()
 export class QueueController {
@@ -15,9 +17,9 @@ export class QueueController {
   public async enqueue(req: Request, res: Response): Promise<void> {
     try {
       const job = await this.queueService.enqueue(req.body);
-      res.status(200).json({ message: 'Job added', jobId: job.id });
+      res.status(StatusCodes.OK).json({ message: 'Job added', jobId: job.id });
     } catch (error) {
-      res.status(500).json({ message: 'Failed to enqueue job', error });
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to enqueue job', error });
     }
   }
 
@@ -29,9 +31,9 @@ export class QueueController {
     const status = await this.queueService.getJobStatus(jobId);
 
     if (!status) {
-      res.status(404).json({ message: 'Job not found' });
+      res.status(StatusCodes.NOT_FOUND).json({ message: 'Job not found' });
     } else {
-      res.status(200).json({ status });
+      res.status(StatusCodes.OK).json({ status });
     }
   }
 
@@ -43,9 +45,9 @@ export class QueueController {
     const success = await this.queueService.cancelJob(jobId);
 
     if (success) {
-      res.status(200).json({ message: `Job canceled: ${jobId}` });
+      res.status(StatusCodes.OK).json({ message: `Job canceled: ${jobId}` });
     } else {
-      res.status(404).json({ message: 'Job not found or already completed' });
+      res.status(StatusCodes.NOT_FOUND).json({ message: 'Job not found or already completed' });
     }
   }
 
@@ -57,9 +59,9 @@ export class QueueController {
     const success = await this.queueService.retryJob(jobId);
 
     if (!success) {
-      res.status(404).json({ message: 'Job not found or cannot be retried' });
+      res.status(StatusCodes.NOT_FOUND).json({ message: 'Job not found or cannot be retried' });
     } else {
-      res.status(200).json({ message: 'Job retried' });
+      res.status(StatusCodes.OK).json({ message: 'Job retried' });
     }
   }
 }

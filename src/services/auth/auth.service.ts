@@ -69,7 +69,7 @@ export class AuthService {
         return user as unknown as ICredentialsUser;
     }
 
-    async login(email: string, password: string, deviceInfo?: Request['deviceInfo']): Promise<LoginResponse> {
+    async login(email: string, password: string, deviceInfo: Request['deviceInfo']): Promise<LoginResponse> {
         this.validateEmail(email);
         const user = await this.runWithErrorHandling(
             () => this.userRepository.findByEmail(email.toLowerCase()),

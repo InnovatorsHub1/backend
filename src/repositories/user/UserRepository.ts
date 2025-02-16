@@ -5,6 +5,7 @@ import { mongoConnection } from '@gateway/utils/mongoConnection';
 import { Condition, ObjectId, Filter } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
+import { Request } from 'express';
 
 @injectable()
 export class UserRepository extends BaseRepository<IUser> {
@@ -22,18 +23,18 @@ export class UserRepository extends BaseRepository<IUser> {
         );
     }
 
-    private async runWithErrorHandling<T>(fn: () => Promise<T>): Promise<T> {
+    private async runWithErrorHandling<T>(fn: () => Promise<T>, errorMessage: string): Promise<T> {
         try {
             return await fn();
         } catch {
-            throw new ApiError('Cannot connect to database', StatusCodes.INTERNAL_SERVER_ERROR, 'UserRepository');
+            throw new ApiError(errorMessage, StatusCodes.INTERNAL_SERVER_ERROR, 'UserRepository');
         }
     }
 
 
 
     async findByEmail(email: string): Promise<ICredentialsUser | null> {
-        const user = await this.collection.findOne({ email: email.toLowerCase() }) as Promise<ICredentialsUser> | null;
+        const user = await this.collection.findOne({ email: email.toLowerCase() }) as ICredentialsUser | null;
         return user;
     }
 
@@ -42,14 +43,14 @@ export class UserRepository extends BaseRepository<IUser> {
         return this.runWithErrorHandling(async () => {
             const user = await this.findOne({ _id: new ObjectId(id) });
             return user;
-        });
+        }, 'Cannot connect to database');
     }
 
 
     async findByProvider(provider: ISSOUser['provider'], providerId: string): Promise<IUser | null> {
         return this.runWithErrorHandling(async () => {
             return await this.findOne({ provider, providerId });
-        });
+        }, 'Cannot connect to database');
     }
 
 
@@ -62,7 +63,7 @@ export class UserRepository extends BaseRepository<IUser> {
                     $currentDate: { updatedAt: true }
                 }
             );
-        });
+        }, 'Cannot connect to database');
     }
 
 
@@ -79,13 +80,13 @@ export class UserRepository extends BaseRepository<IUser> {
                     $currentDate: { updatedAt: true }
                 }
             );
-        });
+        }, 'Cannot connect to database');
     }
 
 
-    async updateLastLogin(userId: string): Promise<void> {
+    async updateLastLogin(userId: string, deviceInfo?: Request['deviceInfo']): Promise<void> {
         return this.runWithErrorHandling(async () => {
-            await this.collection.updateOne(
+            const result = await this.collection.updateOne(
                 { _id: new ObjectId(userId) } as Condition<IUser>,
                 {
 
@@ -96,20 +97,30 @@ export class UserRepository extends BaseRepository<IUser> {
                     $currentDate: { updatedAt: true }
                 }
             );
-        });
+            if (result.modifiedCount === 0) {
+                throw new ApiError('Failed to update user activity', StatusCodes.INTERNAL_SERVER_ERROR, 'UserRepository');
+            }
+        }, 'Cannot connect to database');
     }
 
 
-    async updateActivity(userId: string): Promise<void> {
+    async updateActivity(userId: string, deviceInfo?: Request['deviceInfo']): Promise<void> {
         return this.runWithErrorHandling(async () => {
-            await this.collection.updateOne(
+            const updateData: any = {
+                lastActiveAt: new Date(),
+                updatedAt: new Date()
+            };
+            if (deviceInfo) {
+                updateData.deviceInfo = deviceInfo;
+            }
+            const result = await this.collection.updateOne(
                 { _id: new ObjectId(userId) } as Condition<IUser>,
-                {
-                    $set: { lastActiveAt: new Date() },
-                    $currentDate: { updatedAt: true }
-                }
+                { $set: updateData }
             );
-        });
+            if (result.modifiedCount === 0) {
+                throw new ApiError('Failed to update user activity', StatusCodes.INTERNAL_SERVER_ERROR, 'UserRepository');
+            }
+        }, 'Failed to update user activity');
     }
 
 
@@ -132,12 +143,12 @@ export class UserRepository extends BaseRepository<IUser> {
 
             const result = await this.collection.aggregate(pipeline).toArray();
             return result[0]?.inactiveMinutes || 0;
-        });
+        }, 'Cannot connect to database');
     }
 
     async deleteMany(filter: Filter<IUser> = {}): Promise<void> {
         return this.runWithErrorHandling(async () => {
             await this.collection.deleteMany(filter);
-        });
+        }, 'Cannot connect to database');
     }
 } 

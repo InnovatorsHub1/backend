@@ -26,7 +26,7 @@ export class AuthController {
             const { email, password, firstName, lastName, phoneNumber } = req.body;
 
             await this.authService.signup({ email, password, profile: { firstName, lastName, phoneNumber } });
-            const { accessToken, refreshToken } = await this.authService.login(email, password);
+            const { accessToken, refreshToken } = await this.authService.login(email, password, req.deviceInfo);
             res.cookie('access_token', accessToken, this.configCookie as CookieOptions);
             res.cookie('refresh_token', refreshToken, this.configCookie as CookieOptions);
 
@@ -42,9 +42,7 @@ export class AuthController {
         try {
             const { email, password } = req.body;
 
-            const deviceInfo = req.deviceInfo;
-
-            const { accessToken, refreshToken } = await this.authService.login(email, password, deviceInfo);
+            const { accessToken, refreshToken } = await this.authService.login(email, password, req.deviceInfo);
 
             res.cookie('access_token', accessToken, this.configCookie as CookieOptions);
 

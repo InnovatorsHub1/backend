@@ -13,6 +13,7 @@ describe('AuthController', () => {
     let mockResponse: Partial<Response>;
     let mockNext: jest.Mock;
 
+
     function setDeviceInfo(req: Partial<Request>) {
         (req as any).deviceInfo = {
             ip: req.ip || 'Unknown',
@@ -21,6 +22,7 @@ describe('AuthController', () => {
     }
 
     beforeEach(() => {
+
         authService = {
             login: jest.fn(),
             signup: jest.fn(),
@@ -382,7 +384,10 @@ describe('AuthController', () => {
                 }
             });
 
-            expect(authService.login).toHaveBeenCalledWith(credentials.email, credentials.password);
+            expect(authService.login).toHaveBeenCalledWith(credentials.email, credentials.password, expect.objectContaining({
+                ip: '127.0.0.1',
+                userAgent: 'Unknown'
+            }));
 
             expect(mockResponse.cookie).toHaveBeenCalledWith('access_token', loginResponse.accessToken, {
                 httpOnly: true,

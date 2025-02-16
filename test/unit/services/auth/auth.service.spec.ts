@@ -66,7 +66,7 @@ describe('AuthService', () => {
             passwordService.comparePassword.mockResolvedValue(true);
             sessionService.createSession.mockResolvedValue();
 
-            await authService.login('test@example.com', 'Password123@');
+            await authService.login('test@example.com', 'Password123@', { userAgent: 'test-agent' });
 
             expect(userRepository.resetFailedAttempts).toHaveBeenCalled();
             expect(userRepository.updateLastLogin).toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('AuthService', () => {
         it('should throw on user not found', async () => {
             userRepository.findByEmail.mockResolvedValue(null);
 
-            await expect(authService.login('wrong@example.com', 'Password123@'))
+            await expect(authService.login('wrong@example.com', 'Password123@', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService'));
         });
@@ -102,7 +102,7 @@ describe('AuthService', () => {
 
             userRepository.findByEmail.mockResolvedValue(ssoUser as unknown as ICredentialsUser);
 
-            await expect(authService.login('test@example.com', 'Password123@'))
+            await expect(authService.login('test@example.com', 'Password123@', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService'));
         });
@@ -129,7 +129,7 @@ describe('AuthService', () => {
 
             userRepository.findByEmail.mockResolvedValue(lockedUser);
 
-            await expect(authService.login('test@example.com', 'Password123@'))
+            await expect(authService.login('test@example.com', 'Password123@', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(new ApiError('Account is locked', StatusCodes.UNAUTHORIZED, 'AuthService'));
         });
@@ -156,7 +156,7 @@ describe('AuthService', () => {
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(false);
 
-            await expect(authService.login('test@example.com', 'Password123@!'))
+            await expect(authService.login('test@example.com', 'Password123@', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService'));
 
@@ -181,16 +181,18 @@ describe('AuthService', () => {
                 createdAt: new Date(),
                 updatedAt: new Date()
             };
-            const deviceInfo = { userAgent: 'test-agent' };
 
             userRepository.findByEmail.mockResolvedValue(mockUser);
             passwordService.comparePassword.mockResolvedValue(true);
 
-            await authService.login('test@example.com', 'password123', deviceInfo as Request['deviceInfo']);
+            await authService.login('test@example.com', 'password123', { userAgent: 'test-agent', ip: '127.0.0.1' });
 
             expect(sessionService.createSession).toHaveBeenCalledWith(
                 mockUser,
-                deviceInfo
+                {
+                    ip: '127.0.0.1',
+                    userAgent: 'test-agent'
+                }
             );
         });
 
@@ -218,7 +220,7 @@ describe('AuthService', () => {
                 new ApiError('Invalid credentials', StatusCodes.UNAUTHORIZED, 'AuthService')
             );
 
-            await expect(authService.login('test@example.com', 'password123'))
+            await expect(authService.login('test@example.com', 'password123', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(ApiError);
         });
@@ -246,7 +248,7 @@ describe('AuthService', () => {
             passwordService.comparePassword.mockResolvedValue(true);
             sessionService.createSession.mockRejectedValue(new Error('Session creation failed'));
 
-            await expect(authService.login('test@example.com', 'password123'))
+            await expect(authService.login('test@example.com', 'password123', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(ApiError);
         });
@@ -274,7 +276,7 @@ describe('AuthService', () => {
             passwordService.comparePassword.mockResolvedValue(false);
             userRepository.incrementFailedAttempts.mockRejectedValue(new Error('Update failed'));
 
-            await expect(authService.login('test@example.com', 'wrongpassword'))
+            await expect(authService.login('test@example.com', 'wrongpassword', { userAgent: 'test-agent' }))
                 .rejects
                 .toThrow(ApiError);
         });

@@ -1,10 +1,10 @@
 import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { IUser } from '@gateway/repositories/user/IUser';
-import { ObjectId } from 'mongodb';
-import { Collection } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
+import { Request } from 'express';
 jest.mock('@gateway/utils/mongoConnection', () => ({
     mongoConnection: {
         getClient: jest.fn().mockReturnValue({
@@ -48,20 +48,18 @@ describe('UserRepository', () => {
         jest.restoreAllMocks();
     });
 
-    it('should find user by email', async () => {
-        const mockUser = {
-            email: 'test@example.com',
-            username: 'test'
-        } as IUser;
+    describe('findByEmail', () => {
+        it('should find user by email', async () => {
+            const mockUser = { email: 'test@example.com', username: 'test' };
+            jest.spyOn((userRepository as any).collection, 'findOne').mockResolvedValue(mockUser);
 
-        jest.spyOn(userRepository as any, 'findOne').mockResolvedValue(mockUser);
-
-        const result = await userRepository.findByEmail('test@example.com');
-        expect(result).toEqual(mockUser);
+            const result = await userRepository.findByEmail('test@example.com');
+            expect(result).toEqual(mockUser);
+        });
     });
 
     it('should return null when user not found by email', async () => {
-        jest.spyOn(userRepository as any, 'findOne').mockResolvedValue(null);
+        jest.spyOn((userRepository as any).collection, 'findOne').mockResolvedValue(null);
         const result = await userRepository.findByEmail('notfound@example.com');
         expect(result).toBeNull();
     });
@@ -154,22 +152,63 @@ describe('UserRepository', () => {
             .rejects.toThrow('Cannot connect to database');
     });
 
-    it('should update activity when user is found', async () => {
-        const userId = new ObjectId().toString();
-        await userRepository.updateActivity(userId);
-        expect(mockCollection.updateOne).toHaveBeenCalledWith(
-            { _id: new ObjectId(userId) },
-            {
-                $set: { lastActiveAt: expect.any(Date) },
-                $currentDate: { updatedAt: true }
-            }
-        );
-    });
+    describe('updateActivity', () => {
+        it('should update activity without deviceInfo', async () => {
+            const userId = "507f1f77bcf86cd799439011";
+            const updateOneSpy = jest
+                .spyOn((userRepository as any).collection, 'updateOne')
+                .mockResolvedValue({ modifiedCount: 1 } as any);
 
-    it('should handle database errors in updateActivity', async () => {
-        const userId = new ObjectId().toString();
-        mockCollection.updateOne.mockRejectedValueOnce(new Error('Database error'));
-        await expect(userRepository.updateActivity(userId)).rejects.toThrow('Cannot connect to database');
+            await userRepository.updateActivity(userId);
+
+            expect(updateOneSpy).toHaveBeenCalled();
+            const callArgs = updateOneSpy.mock.calls[0];
+            expect(callArgs[0]).toEqual({ _id: new ObjectId(userId) });
+
+
+            const updateData = callArgs[1] as any;
+            expect(updateData.$set).toHaveProperty('lastActiveAt');
+            expect(updateData.$set).toHaveProperty('updatedAt');
+            expect(updateData.$set).not.toHaveProperty('deviceInfo');
+        });
+
+        it('should update activity with deviceInfo', async () => {
+            const userId = "507f1f77bcf86cd799439011";
+            const deviceInfo: Request['deviceInfo'] = {
+                userAgent: "Mozilla/5.0",
+                ip: "127.0.0.1",
+                platform: "linux",
+                browser: "chrome",
+                version: "1.0",
+                os: "Linux",
+                device: "desktop",
+                manufacturer: "Dell",
+                model: "XPS",
+                isBot: false,
+                isMobile: false,
+            };
+
+            const updateOneSpy = jest
+                .spyOn((userRepository as any).collection, 'updateOne')
+                .mockResolvedValue({ modifiedCount: 1 } as any);
+
+            await userRepository.updateActivity(userId, deviceInfo);
+
+            expect(updateOneSpy).toHaveBeenCalled();
+            const callArgs = updateOneSpy.mock.calls[0];
+            expect(callArgs[0]).toEqual({ _id: new ObjectId(userId) });
+            const updateData = callArgs[1] as any;
+            expect(updateData.$set).toHaveProperty('lastActiveAt');
+            expect(updateData.$set).toHaveProperty('updatedAt');
+            expect(updateData.$set).toHaveProperty('deviceInfo', deviceInfo);
+        });
+
+        it('should throw an ApiError when updateOne fails', async () => {
+            const userId = "507f1f77bcf86cd799439011";
+            jest.spyOn((userRepository as any).collection, 'updateOne').mockRejectedValue(new Error('update failed'));
+
+            await expect(userRepository.updateActivity(userId)).rejects.toThrow(ApiError);
+        });
     });
 
     it('should return inactivity time from aggregate result', async () => {

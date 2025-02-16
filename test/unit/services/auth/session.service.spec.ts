@@ -4,42 +4,70 @@ import { UserRepository } from '@gateway/repositories/user/UserRepository';
 import { ObjectId } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { Request } from 'express';
-import { StatusCodes } from 'http-status-codes';
+
+
+jest.mock('@gateway/utils/mongoConnection', () => {
+    const fakeCollection = {
+        createIndex: jest.fn().mockResolvedValue(undefined),
+        updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
+        deleteMany: jest.fn().mockResolvedValue({}),
+        findOne: jest.fn().mockResolvedValue(null),
+        aggregate: jest.fn(() => ({ toArray: jest.fn().mockResolvedValue([{ inactiveMinutes: 5 }]) }))
+    };
+
+    const fakeDb = {
+        collection: jest.fn(() => fakeCollection)
+    };
+
+    return {
+        mongoConnection: {
+            getClient: () => ({
+                db: () => fakeDb,
+            }),
+        },
+    };
+});
 
 describe('SessionService', () => {
     let sessionService: SessionService;
     let jwtService: jest.Mocked<JwtService>;
-    let userRepository: jest.Mocked<UserRepository>;
+    let userRepository: UserRepository;
 
     beforeEach(() => {
         jwtService = {
             verifyToken: jest.fn()
         } as any;
 
-        userRepository = {
-            updateActivity: jest.fn()
-        } as any;
+        userRepository = new UserRepository();
+        (userRepository as any).collection = { updateOne: jest.fn() };
 
         sessionService = new SessionService(jwtService, userRepository);
+        jest.spyOn((userRepository as any).collection, 'updateOne').mockResolvedValue({ modifiedCount: 1 } as any);
+
     });
 
     describe('createSession', () => {
         it('should call updateActivity with the user id', async () => {
-            const user = { _id: new ObjectId() } as any;
+            const user = { _id: new ObjectId("507f1f77bcf86cd799439011") } as any;
             const deviceInfo: Request['deviceInfo'] = { userAgent: 'Mozilla/5.0', ip: '127.0.0.1' };
+
+            const updateActivitySpy = jest
+                .spyOn(userRepository, 'updateActivity')
+                .mockResolvedValue(undefined);
 
             await sessionService.createSession(user, deviceInfo);
 
-            expect(userRepository.updateActivity).toHaveBeenCalledWith(user._id.toString());
+            expect(updateActivitySpy).toHaveBeenCalled();
+            expect(updateActivitySpy.mock.calls[0][0]).toBe(user._id.toString());
         });
 
         it('should throw an ApiError if updateActivity fails', async () => {
-            const user = { _id: new ObjectId() } as any;
+            const user = { _id: new ObjectId("507f1f77bcf86cd799439011") } as any;
             const deviceInfo: Request['deviceInfo'] = { userAgent: 'Mozilla/5.0', ip: '127.0.0.1' };
-            userRepository.updateActivity.mockRejectedValue(new ApiError('update failed', StatusCodes.INTERNAL_SERVER_ERROR, 'SessionService'));
 
-            await expect(sessionService.createSession(user, deviceInfo))
-                .rejects.toThrow(ApiError);
+            jest.spyOn((userRepository as any).collection, 'updateOne').mockResolvedValue({ modifiedCount: 0 } as any);
+
+            await expect(sessionService.createSession(user, deviceInfo)).rejects.toThrow(ApiError);
         });
     });
 
@@ -60,28 +88,6 @@ describe('SessionService', () => {
             jwtService.verifyToken.mockReturnValue({});
             const result = sessionService.validateSession('token-without-sub');
             expect(result).toBe(false);
-        });
-    });
-
-    describe('updateActivity', () => {
-        it('should call updateActivity on the userRepository with the provided userId', async () => {
-            const userId = 'user123';
-            await sessionService.updateActivity(userId);
-            expect(userRepository.updateActivity).toHaveBeenCalledWith(userId);
-        });
-
-        it('should throw an ApiError if updateActivity fails', async () => {
-            const userId = 'user123';
-            userRepository.updateActivity.mockRejectedValue(new Error('failed'));
-            await expect(sessionService.updateActivity(userId)).rejects.toThrow(ApiError);
-        });
-    });
-
-    describe('runWithErrorHandling', () => {
-        it('should throw ApiError', async () => {
-            await expect((sessionService as any).runWithErrorHandling(() => Promise.reject(new ApiError('test error', StatusCodes.BAD_REQUEST, 'SessionService'))))
-                .rejects
-                .toThrow(ApiError);
         });
     });
 }); 

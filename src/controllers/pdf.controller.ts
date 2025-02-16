@@ -18,7 +18,9 @@ export class PDFController {
     try {
       const { templateName, data, options } = req.body;
 
+      // Validation check before processing
       if (!templateName || !data) {
+        this.logger.error('Missing required parameters');
         throw new ApiError('Missing required parameters', StatusCodes.BAD_REQUEST, 'PDFController');
       }
 
@@ -28,6 +30,9 @@ export class PDFController {
       res.setHeader('Content-Disposition', `attachment; filename=${templateName}.pdf`);
       res.status(StatusCodes.OK).send(pdfBuffer);
     } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
       this.logger.error('PDF generation failed', error);
       throw new ApiError('PDF generation failed', StatusCodes.INTERNAL_SERVER_ERROR, 'PDFController');
     }
@@ -37,7 +42,9 @@ export class PDFController {
     try {
       const files = (req as any).files as Express.Multer.File[];
       
+      // Validation check before processing
       if (!files || files.length < 2) {
+        this.logger.error('At least two PDF files are required');
         throw new ApiError('At least two PDF files are required', StatusCodes.BAD_REQUEST, 'PDFController');
       }
 
@@ -48,6 +55,9 @@ export class PDFController {
       res.setHeader('Content-Disposition', 'attachment; filename=merged.pdf');
       res.status(StatusCodes.OK).send(mergedPDF);
     } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
       this.logger.error('PDF merging failed', error);
       throw new ApiError('PDF merging failed', StatusCodes.INTERNAL_SERVER_ERROR, 'PDFController');
     }

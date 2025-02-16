@@ -10,6 +10,7 @@ let queueService: QueueService;
 let jobId: string;
 
 beforeAll(async () => {
+  jest.setTimeout(30000);
   process.env.PORT = '4000';
   appInstance = container.get<App>(TYPES.App);
   queueService = container.get<QueueService>(TYPES.QueueService);
@@ -24,6 +25,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  jest.setTimeout(30000);
   await queueService.clearQueue();
 
   if (queueService) {

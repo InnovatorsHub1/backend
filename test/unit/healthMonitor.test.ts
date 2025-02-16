@@ -1,7 +1,7 @@
 import { HealthMonitorService } from '@gateway/services/healthMonitor.service';
 import { WinstonLogger } from '@gateway/core/logger/winston.logger';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
-import { HEALTH_CONFIG } from '@gateway/config/health_config';
+import { HEALTH_CONFIG } from '@gateway/config/health.config';
 import { MetricsHistoryService } from '@gateway/services/metricHistory.service';
 import os from 'os';
 import * as child_process from 'child_process';

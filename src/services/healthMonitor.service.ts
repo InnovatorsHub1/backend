@@ -1,10 +1,10 @@
 import { WinstonLogger } from '../core/logger/winston.logger';
-import { SystemMetrics, DependencyStatus, NetworkStats, IHealthService } from '../types/healthMonitor.types';
+import { SystemMetrics, DependencyStatus, NetworkStats} from '../types/healthMonitor.types';
 import { injectable } from 'inversify';
 import os from 'os';
 import { exec } from 'child_process';
 import { mongoConnection } from '@gateway/utils/mongoConnection';
-import { HEALTH_CONFIG } from '../config/health_config';
+import { HEALTH_CONFIG } from '../config/health.config';
 import { MetricsHistoryService } from './metricHistory.service';
 import { promisify } from 'util';
 
@@ -59,6 +59,7 @@ export class HealthMonitorService {
             });
         });
     }
+    
     private async getWindowsNetworkStats(interfaceName: string): Promise<NetworkInterfaceStats> {
         try {
             const { stdout } = await this.execAsync(

@@ -5,7 +5,6 @@ export const TYPES = {
     HealthRoutes: Symbol.for('HealthRoutes'),
     HealthMonitorService: Symbol.for('HealthMonitorService'),
     HealthMonitorController: Symbol.for('HealthMonitorController'),
-    HealthMonitorRoutes: Symbol.for('HealthMonitorRoutes'),
     MetricsHistoryService: Symbol.for('MetricsHistoryService'),
     Routes: Symbol.for('Routes'),
     PDFService: Symbol.for('PDFService'),

@@ -4,7 +4,7 @@ import { config } from '@gateway/config';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import { AccessTokenPayload, JtiDocument, RefreshTokenPayload } from './types';
-import { IMongoConnection, mongoConnection } from '@gateway/utils/mongoConnection';
+import { IMongoConnection, getMongoConnection } from '@gateway/utils/mongoConnection';
 import { randomUUID } from 'crypto';
 
 /**
@@ -21,7 +21,7 @@ export class JwtService {
 
 
 
-    constructor(db: IMongoConnection = mongoConnection) {
+    constructor(db: IMongoConnection = getMongoConnection()) {
         this.db = db;
         this.initializeService();
     }

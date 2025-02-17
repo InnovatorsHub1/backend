@@ -11,6 +11,10 @@ type LogContext = {
   correlationId?: string;
 };
 
+export type MaskableData = LogMeta & {
+  [key: string]: string | undefined | Record<string, unknown>;
+};
+
 export interface LogMeta {
   requestId?: string;
   userId?: string;

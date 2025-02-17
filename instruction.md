@@ -186,6 +186,7 @@ curl -X POST \
 ### with Docker
 
 ```bash
+docker-compose up -d
 # All tests
 docker-compose exec app npm run test:unit
 ```

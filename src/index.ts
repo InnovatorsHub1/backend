@@ -1,7 +1,7 @@
 import { App } from './app';
 import { WinstonLogger } from './core/logger/winston.logger';
 import { container } from './core/di/container';
-import { mongoConnection } from './utils/mongoConnection';
+
 
 const logger = new WinstonLogger('Main');
 
@@ -17,7 +17,6 @@ process.on('unhandledRejection', (reason: any) => {
 
 const startServer = async () => {
   try {
-    await mongoConnection.connect();
     const app = container.resolve<App>(App);
     await app.start();
   } catch (error) {

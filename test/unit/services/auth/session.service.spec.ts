@@ -6,27 +6,24 @@ import { ApiError } from '@gateway/core/errors/api.error';
 import { Request } from 'express';
 
 
-jest.mock('@gateway/utils/mongoConnection', () => {
-    const fakeCollection = {
-        createIndex: jest.fn().mockResolvedValue(undefined),
-        updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
-        deleteMany: jest.fn().mockResolvedValue({}),
-        findOne: jest.fn().mockResolvedValue(null),
-        aggregate: jest.fn(() => ({ toArray: jest.fn().mockResolvedValue([{ inactiveMinutes: 5 }]) }))
-    };
+jest.mock('@gateway/utils/mongoConnection', () => ({
+    getMongoConnection: jest.fn().mockReturnValue({
+        connect: jest.fn().mockResolvedValue(undefined),
+        getClient: jest.fn().mockReturnValue({
+            db: jest.fn().mockReturnValue({
+                collection: jest.fn().mockReturnValue({
+                    createIndex: jest.fn().mockResolvedValue('index created'),
+                    findOne: jest.fn().mockResolvedValue(null),
+                    updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 } as any),
+                    insertOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+                    deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+                    countDocuments: jest.fn().mockResolvedValue(0)
+                })
+            })
+        })
+    })
+}));
 
-    const fakeDb = {
-        collection: jest.fn(() => fakeCollection)
-    };
-
-    return {
-        mongoConnection: {
-            getClient: () => ({
-                db: () => fakeDb,
-            }),
-        },
-    };
-});
 
 describe('SessionService', () => {
     let sessionService: SessionService;

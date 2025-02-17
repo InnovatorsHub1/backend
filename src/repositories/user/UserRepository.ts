@@ -1,7 +1,7 @@
 import { injectable } from 'inversify';
 import { BaseRepository } from '@gateway/repositories/BaseRepository';
 import { IUser, ISSOUser, ICredentialsUser } from './IUser';
-import { mongoConnection } from '@gateway/utils/mongoConnection';
+import { getMongoConnection } from '@gateway/utils/mongoConnection';
 import { Condition, ObjectId, Filter } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
@@ -10,7 +10,8 @@ import { Request } from 'express';
 @injectable()
 export class UserRepository extends BaseRepository<IUser> {
     constructor() {
-        const collection = mongoConnection.getClient().db().collection<IUser>('users');
+        getMongoConnection().connect();
+        const collection = getMongoConnection().getClient().db().collection<IUser>('users');
         super(collection);
         this.createIndexes();
     }
@@ -42,7 +43,7 @@ export class UserRepository extends BaseRepository<IUser> {
     async findById(id: string): Promise<IUser | null> {
         return this.runWithErrorHandling(async () => {
             const user = await this.findOne({ _id: new ObjectId(id) });
-            return user;
+            return user || null;
         }, 'Cannot connect to database');
     }
 
@@ -86,15 +87,19 @@ export class UserRepository extends BaseRepository<IUser> {
 
     async updateLastLogin(userId: string, deviceInfo?: Request['deviceInfo']): Promise<void> {
         return this.runWithErrorHandling(async () => {
+            const updateData: any = {
+                lastLogin: new Date(),
+                lastActiveAt: new Date(),
+                updatedAt: new Date()
+            };
+            if (deviceInfo) {
+                updateData.deviceInfo = deviceInfo;
+            }
             const result = await this.collection.updateOne(
                 { _id: new ObjectId(userId) } as Condition<IUser>,
                 {
 
-                    $set: {
-                        lastLogin: new Date(),
-                        lastActiveAt: new Date()
-                    },
-                    $currentDate: { updatedAt: true }
+                    $set: updateData
                 }
             );
             if (result.modifiedCount === 0) {

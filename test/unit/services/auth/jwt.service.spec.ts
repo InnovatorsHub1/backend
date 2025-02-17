@@ -1,14 +1,29 @@
 import { JwtService } from '@gateway/services/jwt/jwt.service';
 import { AccessTokenPayload, RefreshTokenPayload } from '@gateway/services/jwt/types';
 import { sign, verify, JwtPayload } from 'jsonwebtoken';
-import { mongoConnection } from '@gateway/utils/mongoConnection';
+import { getMongoConnection } from '@gateway/utils/mongoConnection';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import fs from 'fs';
 import { generateKeyPairSync } from 'crypto';
 
 jest.mock('fs');
-jest.mock('@gateway/utils/mongoConnection');
+jest.mock('@gateway/utils/mongoConnection', () => ({
+    getMongoConnection: jest.fn().mockReturnValue({
+        getClient: jest.fn().mockReturnValue({
+            db: jest.fn().mockReturnValue({
+                collection: jest.fn().mockReturnValue({
+                    createIndex: jest.fn().mockResolvedValue('index created'),
+                    findOne: jest.fn().mockResolvedValue(null),
+                    insertOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+                    deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+                    countDocuments: jest.fn().mockResolvedValue(0)
+                })
+            })
+        })
+    })
+}));
+
 jest.mock('@gateway/config', () => ({
     config: {
         jwtPublicKeyPath: '/path/to/public.key',
@@ -19,7 +34,7 @@ jest.mock('@gateway/config', () => ({
 }));
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
-const mockedMongoConnection = mongoConnection as jest.Mocked<any>;
+const mockedMongoConnection = getMongoConnection() as jest.Mocked<any>;
 
 describe('JwtService', () => {
     let jwtService: JwtService;

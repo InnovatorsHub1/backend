@@ -4,7 +4,7 @@ import { config } from '@gateway/config';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import { AccessTokenPayload, JtiDocument, RefreshTokenPayload } from './types';
-import { IMongoConnection, mongoConnection } from '@gateway/utils/mongoConnection';
+import { IMongoConnection, getMongoConnection } from '@gateway/utils/mongoConnection';
 import { randomUUID } from 'crypto';
 import { injectable, optional, unmanaged } from 'inversify';
 
@@ -23,7 +23,7 @@ export class JwtService {
     private readonly MAX_CONCURRENT_SESSIONS = 5;
 
     constructor(@optional() @unmanaged() db?: IMongoConnection) {
-        this.db = db || mongoConnection;
+        this.db = db || getMongoConnection();
         this.initializeService();
     }
 

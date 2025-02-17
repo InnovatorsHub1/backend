@@ -8,14 +8,17 @@ export interface IMongoConnection {
   getClient(): MongoClient;
 }
 
-class MongoConnection implements IMongoConnection {
+export class MongoConnection implements IMongoConnection {
   private client: MongoClient | null = null;
   private logger = new WinstonLogger('MongoDB');
   private static instance: MongoConnection;
 
+  private constructor() { } // Make constructor private for singleton pattern
+
   async connect(): Promise<void> {
     try {
-      this.client = await MongoClient.connect(process.env.MONGO_URI!);
+      this.client = new MongoClient(process.env.MONGO_URI!);
+      await this.client.connect();
       this.logger.info('Connected to MongoDB');
     } catch (error) {
       this.logger.error('MongoDB connection failed', error);
@@ -24,15 +27,16 @@ class MongoConnection implements IMongoConnection {
   }
 
   static getInstance(): MongoConnection {
-    if (!this.instance) {
-      this.instance = new MongoConnection();
+    if (!MongoConnection.instance) {
+      MongoConnection.instance = new MongoConnection();
     }
-    return this.instance;
+    return MongoConnection.instance;
   }
 
   async disconnect(): Promise<void> {
     if (this.client) {
       await this.client.close();
+      this.client = null;
       console.log('Disconnected from MongoDB');
     }
   }
@@ -47,4 +51,5 @@ class MongoConnection implements IMongoConnection {
   }
 }
 
-export const mongoConnection = new MongoConnection();
+// Export the singleton instance getter
+export const getMongoConnection = MongoConnection.getInstance;

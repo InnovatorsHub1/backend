@@ -11,6 +11,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from './core/di/types';
 import { deviceInfoMiddleware } from './middleware/request-device-info.middlware';
 import cookieParser from 'cookie-parser';
+
 const logger = new WinstonLogger('App');
 
 @injectable()

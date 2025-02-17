@@ -186,7 +186,6 @@ curl -X POST \
 ### with Docker
 
 ```bash
-docker-compose up -d
 # All tests
 docker-compose exec app npm run test:unit
 ```
@@ -216,4 +215,3 @@ docker volume prune
 # Remove unused networks
 docker network prune
 ```
-

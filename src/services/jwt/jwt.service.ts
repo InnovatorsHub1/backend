@@ -7,6 +7,7 @@ import { AccessTokenPayload, JtiDocument, RefreshTokenPayload } from './types';
 import { IMongoConnection, getMongoConnection } from '@gateway/utils/mongoConnection';
 import { randomUUID } from 'crypto';
 import { injectable, optional, unmanaged } from 'inversify';
+import { CollectionName } from '@gateway/constants/db';
 
 
 /**
@@ -56,7 +57,7 @@ export class JwtService {
     }
 
     private jtiCollection() {
-        return this.db.getClient().db().collection<JtiDocument>('jti');
+        return this.db.getClient().db().collection<JtiDocument>(CollectionName.JTI);
     }
 
     private async initializeJtiTTLIndex() {

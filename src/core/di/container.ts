@@ -1,6 +1,9 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
 import express, { Application } from 'express';
+import { AuthService } from '@gateway/services/auth/auth.service';
+import { AuthController } from '@gateway/controllers/auth.controller';
+import { RetryService } from '@gateway/services/retry.service';
 
 import { ValidationService } from '../validation/validation.service';
 import { HealthService } from '../../services/health.service';
@@ -12,9 +15,11 @@ import { PDFService } from '../../services/pdf/pdf.service';
 import { TemplateService } from '../../services/pdf/template.service';
 import { PDFController } from '../../controllers/pdf.controller';
 import { PDFRoutes } from '../../routes/pdf.routes';
+import { AuthRoutes } from '../../routes/auth.routes';
+
 
 import { TYPES } from './types';
-import { RetryService } from '@gateway/services/retry.service';
+
 
 const container = new Container({ defaultScope: 'Singleton' });
 
@@ -33,6 +38,9 @@ container.bind<PDFService>(TYPES.PDFService).to(PDFService);
 container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
-container.bind<RetryService>(TYPES.RetryService).to(RetryService)
+container.bind<RetryService>(TYPES.RetryService).to(RetryService);
+container.bind<AuthService>(TYPES.AuthService).to(AuthService);
+container.bind<AuthController>(TYPES.AuthController).to(AuthController);
+container.bind<AuthRoutes>(TYPES.AuthRoutes).to(AuthRoutes);
 
 export { container };

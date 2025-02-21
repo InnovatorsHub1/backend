@@ -1,0 +1,46 @@
+{
+  "window.zoomLevel": 0,
+  "explorer.compactFolders": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+
+  "workbench.colorCustomizations": {
+    "editorLineNumber.activeForeground": "#FFC0CB"
+    // - Background related:
+    // "editor.background": "#000088",
+    // "editor.selectionBackground": "#008800",
+    // - Text related:
+    // "editor.foreground": "#880000",
+    // - Numbered lines related:
+    // "editorLineNumber.foreground": "#005500",
+  },
+
+  // code actions onSave
+  // - Mostly for formatting using a formatter (eslint & prettier)
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always",
+    "quickfix.biome": "always",
+    "source.addMissingImports": "never"
+    // "source.fixAll": true, // <--- This is stronger than source.fixAll.eslint! because it also aggresively removes unreachable code!
+    // "source.organizeImports": true, // <--- This also removes unused imports. I disabled it, since I'm already using eslint for that.
+    // "source.organizeImports.biome": "always",
+  },
+
+  // Rules for json files
+  "[jsonc]": {
+    "editor.quickSuggestions": { "strings": "on" },
+    "editor.suggest.insertMode": "replace", // defaults to insert
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Rules for markdown files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.renderWhitespace": "all",
+    "editor.acceptSuggestionOnEnter": "off",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "eslint.validate": ["javascript", "typescript", "json"]
+}

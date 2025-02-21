@@ -1,4 +1,5 @@
 import { Collection, ObjectId, Filter, Sort, WithId, OptionalUnlessRequiredId } from 'mongodb';
+
 import { IBaseRepository, QueryOptions } from './IBaseRepository';
 
 
@@ -29,6 +30,7 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
       const projection = options.select.reduce((acc, field) => ({ ...acc, [field]: 1 }), {});
       cursor = cursor.project(projection);
     }
+
     return cursor.toArray();
   }
 
@@ -39,7 +41,7 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
       updatedAt: new Date(),
     } as unknown as OptionalUnlessRequiredId<T>);
 
-    return this.collection.findOne({ _id: result.insertedId as ObjectId } as Filter<T>) as Promise<WithId<T>>
+    return this.collection.findOne({ _id: result.insertedId as ObjectId } as Filter<T>) as Promise<WithId<T>>;
   }
 
   async update(id: string, data: Partial<T>): Promise<WithId<T> | null> {
@@ -49,11 +51,12 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
       {
         $set: {
           ...data,
-          updatedAt: new Date()
-        } as Partial<T>
+          updatedAt: new Date(),
+        } as Partial<T>,
       },
-      { returnDocument: 'after' }
+      { returnDocument: 'after' },
     );
+
     return updated;
   }
 
@@ -64,10 +67,11 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
       {
         $set: {
           isDeleted: true,
-          updatedAt: new Date()
-        } as unknown as Partial<T>
-      }
+          updatedAt: new Date(),
+        } as unknown as Partial<T>,
+      },
     );
+
     return result.modifiedCount === 1;
   }
 
@@ -81,8 +85,9 @@ export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T
   }> {
     const [items, total] = await Promise.all([
       this.findMany(query, { skip: (page - 1) * limit, limit }),
-      this.count(query)
+      this.count(query),
     ]);
+
     return { items, total };
   }
 }

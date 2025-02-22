@@ -6,12 +6,14 @@ import { Condition, ObjectId, Filter } from 'mongodb';
 import { ApiError } from '@gateway/core/errors/api.error';
 import { StatusCodes } from 'http-status-codes';
 import { Request } from 'express';
+import { CollectionName } from '@gateway/constants/db';
+
 
 @injectable()
 export class UserRepository extends BaseRepository<IUser> {
     constructor() {
         getMongoConnection().connect();
-        const collection = getMongoConnection().getClient().db().collection<IUser>('users');
+        const collection = getMongoConnection().getClient().db().collection<IUser>(CollectionName.USERS);
         super(collection);
         this.createIndexes();
     }

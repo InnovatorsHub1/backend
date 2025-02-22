@@ -80,8 +80,11 @@ export class App {
   public async stop(): Promise<void> {
     if (this.server) {
       await new Promise<void>((resolve) => this.server.close(() => resolve()));
-      await getMongoConnection().disconnect();
       logger.info('Server stopped');
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await getMongoConnection().disconnect();
     }
   }
 }

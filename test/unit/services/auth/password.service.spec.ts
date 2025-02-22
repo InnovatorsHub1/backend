@@ -11,17 +11,21 @@ jest.mock('bcrypt', () => ({
 describe('PasswordService', () => {
     let passwordService: PasswordService;
     let mockHash: jest.SpyInstance;
+    let mockCompare: jest.SpyInstance;
 
     beforeEach(() => {
-        jest.clearAllMocks();
         passwordService = new PasswordService();
         mockHash = jest.spyOn(bcrypt, 'hash');
-        // Set default mock implementation that works
+        mockCompare = jest.spyOn(bcrypt, 'compare');
+
+        // Default implementations
         mockHash.mockImplementation((password: string) => Promise.resolve(`hashed_${password}`));
+        mockCompare.mockImplementation(() => Promise.resolve(false));
     });
 
     afterEach(() => {
         mockHash.mockRestore();
+        mockCompare.mockRestore();
     });
 
     describe('validatePassword', () => {
@@ -73,15 +77,12 @@ describe('PasswordService', () => {
         });
 
         it('should throw ApiError when bcrypt fails', async () => {
-            // Mock bcrypt.hash to throw an error
-            const mockHash = jest.spyOn(bcrypt, 'hash');
-            mockHash.mockImplementationOnce(() => Promise.reject(new Error('Bcrypt internal error')));
+            // Override default implementation for this test only
+            mockHash.mockRejectedValueOnce(new Error('Bcrypt internal error'));
 
             await expect(passwordService.hashPassword('Test123!@'))
                 .rejects
                 .toThrow(ApiError);
-            // Clean up
-            mockHash.mockRestore();
         });
 
         it('should throw error for non-string password', async () => {
@@ -93,13 +94,11 @@ describe('PasswordService', () => {
 
     describe('comparePassword', () => {
         it('should return true for matching password', async () => {
-            const mockCompare = jest.spyOn(bcrypt, 'compare');
-            mockCompare.mockResolvedValue(true as never);
+            // Override default implementation for this test only
+            mockCompare.mockResolvedValueOnce(true);
 
             const result = await passwordService.comparePassword('password123', 'hashedPassword');
             expect(result).toBe(true);
-
-            mockCompare.mockRestore();
         });
 
         it('should return false for non-matching password', async () => {

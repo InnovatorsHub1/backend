@@ -1,36 +1,33 @@
+// חשוב: יש לבצע את mock ל-bcrypt לפני כל import של קוד שמשתמש בו
+jest.mock('bcrypt', () => ({
+    hash: jest.fn(),
+    compare: jest.fn(),
+}));
+
+import * as bcrypt from 'bcrypt';
 import { PasswordService } from '@gateway/services/auth/password.service';
 import { ApiError } from '@gateway/core/errors/api.error';
-import * as bcrypt from 'bcrypt';
 import { StatusCodes } from 'http-status-codes';
-
-jest.mock('bcrypt', () => ({
-    hash: jest.fn().mockResolvedValue('hashedPassword'),
-    compare: jest.fn().mockResolvedValue(true)
-}), { virtual: true });
 
 describe('PasswordService', () => {
     let passwordService: PasswordService;
-    let mockHash: jest.SpyInstance;
-    let mockCompare: jest.SpyInstance;
 
     beforeEach(() => {
         passwordService = new PasswordService();
-        mockHash = jest.spyOn(bcrypt, 'hash');
-        mockCompare = jest.spyOn(bcrypt, 'compare');
 
-        // Default implementations
-        mockHash.mockImplementation((password: string) => Promise.resolve(`hashed_${password}`));
-        mockCompare.mockImplementation(() => Promise.resolve(false));
-    });
+        // איפוס המוקים לפני כל טסט
+        (bcrypt.hash as jest.Mock).mockReset();
+        (bcrypt.compare as jest.Mock).mockReset();
 
-    afterEach(() => {
-        mockHash.mockRestore();
-        mockCompare.mockRestore();
+        // הגדרת ערכים ברירת מחדל למוקים (ניתן לשנות בכל טסט בנפרד עם mockResolvedValueOnce / mockRejectedValueOnce)
+        (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
+        (bcrypt.compare as jest.Mock).mockResolvedValue(false);
     });
 
     describe('validatePassword', () => {
         it('should accept valid password', () => {
             expect(() =>
+                // גישה ישירה למתודה פרטית
                 passwordService['validatePassword']('Test123!@')
             ).not.toThrow();
         });
@@ -69,7 +66,10 @@ describe('PasswordService', () => {
     describe('hashPassword', () => {
         it('should hash valid password', async () => {
             const password = 'Test123!@';
-            const hash = await passwordService['hashPassword'](password);
+
+            // bcrypt.hash מחזיר כבר בברירת מחדל 'hashedPassword'
+            const hash = await passwordService.hashPassword(password);
+
             expect(hash).toBeTruthy();
             expect(hash).not.toBe(password);
             expect(typeof hash).toBe('string');
@@ -77,8 +77,8 @@ describe('PasswordService', () => {
         });
 
         it('should throw ApiError when bcrypt fails', async () => {
-            // Override default implementation for this test only
-            mockHash.mockRejectedValueOnce(new Error('Bcrypt internal error'));
+            // גורמים ל-bcrypt.hash להיכשל הפעם
+            (bcrypt.hash as jest.Mock).mockRejectedValueOnce(new Error('Bcrypt internal error'));
 
             await expect(passwordService.hashPassword('Test123!@'))
                 .rejects
@@ -86,6 +86,7 @@ describe('PasswordService', () => {
         });
 
         it('should throw error for non-string password', async () => {
+            // מוודאים שייווצר שגיאת ApiError כשהפרמטר לא סטרינג
             await expect(passwordService.hashPassword(123 as any))
                 .rejects
                 .toThrow(new ApiError('Invalid password format', StatusCodes.BAD_REQUEST, 'PasswordService'));
@@ -94,21 +95,19 @@ describe('PasswordService', () => {
 
     describe('comparePassword', () => {
         it('should return true for matching password', async () => {
-            // Override default implementation for this test only
-            mockCompare.mockResolvedValueOnce(true);
+            // כאן אנו מחזירים פעם אחת true
+            (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
             const result = await passwordService.comparePassword('password123', 'hashedPassword');
             expect(result).toBe(true);
         });
 
         it('should return false for non-matching password', async () => {
-            const mockCompare = jest.spyOn(bcrypt, 'compare');
-            mockCompare.mockResolvedValue(false as never);
+            // כברירת מחדל הגדרנו false, אבל אפשר שוב לציין במפורש
+            (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
             const result = await passwordService.comparePassword('wrongPassword', 'hashedPassword');
             expect(result).toBe(false);
-
-            mockCompare.mockRestore();
         });
     });
-}); 
+});

@@ -11,6 +11,7 @@ import { injectable, inject } from 'inversify';
 import { TYPES } from './core/di/types';
 import { deviceInfoMiddleware } from './middleware/request-device-info.middlware';
 import cookieParser from 'cookie-parser';
+import { getMongoConnection } from './utils/mongoConnection';
 
 const logger = new WinstonLogger('App');
 
@@ -79,6 +80,7 @@ export class App {
   public async stop(): Promise<void> {
     if (this.server) {
       await new Promise<void>((resolve) => this.server.close(() => resolve()));
+      await getMongoConnection().disconnect();
       logger.info('Server stopped');
     }
   }

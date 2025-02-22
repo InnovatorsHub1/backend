@@ -11,9 +11,9 @@ jest.mock('@gateway/core/logger/winston.logger');
 const MockedWinstonLogger = WinstonLogger as jest.MockedClass<typeof WinstonLogger>;
 
 describe('MongoConnection', () => {
-    let mongoConnection: MongoConnection;
-    let mockLogger: jest.Mocked<WinstonLogger>;
-    let mockClient: jest.Mocked<MongoClient>;
+  let mongoConnection: MongoConnection;
+  let mockLogger: jest.Mocked<WinstonLogger>;
+  let mockClient: jest.Mocked<MongoClient>;
 
   beforeEach(() => {
     // Reset the singleton instance
@@ -48,7 +48,9 @@ describe('MongoConnection', () => {
     delete process.env.MONGO_URI;
   });
 
-
+  process.on('unhandledRejection', (reason, promise) => {
+    console.log('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
 
   describe('Singleton Pattern', () => {
     it('should create only one instance', () => {
@@ -63,17 +65,17 @@ describe('MongoConnection', () => {
     it('should maintain the same instance after connecting', async () => {
       const instance1 = getMongoConnection();
       await instance1.connect();
-      
+
       const instance2 = getMongoConnection();
       expect(instance2.isConnected()).toBe(true);
       expect(instance1).toBe(instance2);
     });
 
-  
+
   });
 
   describe('connect', () => {
-   
+
 
     it('should handle connection failure', async () => {
       const error = new Error('Connection failed');
@@ -83,14 +85,14 @@ describe('MongoConnection', () => {
       expect(mockLogger.error).toHaveBeenCalledWith('MongoDB connection failed', error);
     });
 
-   
+
   });
 
   describe('disconnect', () => {
     it('should disconnect successfully when client exists', async () => {
       // First connect
       await mongoConnection.connect();
-      
+
       // Then disconnect
       mockClient.close.mockResolvedValueOnce(undefined);
       const consoleSpy = jest.spyOn(console, 'log');
@@ -103,7 +105,7 @@ describe('MongoConnection', () => {
 
     it('should handle disconnect when no client exists', async () => {
       const consoleSpy = jest.spyOn(console, 'log');
-      
+
       await mongoConnection.disconnect();
 
       expect(mockClient.close).not.toHaveBeenCalled();
@@ -113,7 +115,7 @@ describe('MongoConnection', () => {
 
     it('should handle disconnect error', async () => {
       await mongoConnection.connect();
-      
+
       const error = new Error('Disconnect failed');
       mockClient.close.mockRejectedValueOnce(error);
 
@@ -132,24 +134,24 @@ describe('MongoConnection', () => {
     });
 
     it('should return false after disconnection', async () => {
-        await mongoConnection.connect();
-        
-        // Mock the close method to properly set client to null
-        mockClient.close.mockImplementationOnce(async () => {
-          // @ts-ignore: Accessing private field for testing
-          mongoConnection.client = null;
-          return undefined;
-        });
-        
-        await mongoConnection.disconnect();
-        expect(mongoConnection.isConnected()).toBe(false);
+      await mongoConnection.connect();
+
+      // Mock the close method to properly set client to null
+      mockClient.close.mockImplementationOnce(async () => {
+        // @ts-ignore: Accessing private field for testing
+        mongoConnection.client = null;
+        return undefined;
       });
+
+      await mongoConnection.disconnect();
+      expect(mongoConnection.isConnected()).toBe(false);
+    });
   });
 
   describe('getClient', () => {
     it('should return client when initialized', async () => {
       await mongoConnection.connect();
-      
+
       const client = mongoConnection.getClient();
       expect(client).toBe(mockClient);
     });
@@ -161,7 +163,7 @@ describe('MongoConnection', () => {
 
     it('should return same client instance on multiple calls', async () => {
       await mongoConnection.connect();
-      
+
       const client1 = mongoConnection.getClient();
       const client2 = mongoConnection.getClient();
       expect(client1).toBe(client2);

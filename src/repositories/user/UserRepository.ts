@@ -12,7 +12,11 @@ import { CollectionName } from '@gateway/constants/db';
 @injectable()
 export class UserRepository extends BaseRepository<IUser> {
     constructor() {
-        getMongoConnection().connect();
+        try {
+            getMongoConnection().getClient();
+        } catch (error) {
+            getMongoConnection().connect();
+        }
         const collection = getMongoConnection().getClient().db().collection<IUser>(CollectionName.USERS);
         super(collection);
         this.createIndexes();

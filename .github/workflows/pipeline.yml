@@ -43,9 +43,9 @@ jobs:
         
       - name: Generate JWT Keys
         run: |
-          mkdir -p ./keys
-          openssl genpkey -algorithm RSA -out ./keys/private.pem -pkeyopt rsa_keygen_bits:2048
-          openssl rsa -pubout -in ./keys/private.pem -out ./keys/public.pem
+          mkdir -p $GITHUB_WORKSPACE/keys
+          openssl genpkey -algorithm RSA -out $GITHUB_WORKSPACE/keys/private.pem -pkeyopt rsa_keygen_bits:2048
+          openssl rsa -pubout -in $GITHUB_WORKSPACE/keys/private.pem -out $GITHUB_WORKSPACE/keys/public.pem
 
       - name: Run test
         run: npm run test:unit

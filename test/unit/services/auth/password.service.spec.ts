@@ -10,10 +10,18 @@ jest.mock('bcrypt', () => ({
 
 describe('PasswordService', () => {
     let passwordService: PasswordService;
+    let mockHash: jest.SpyInstance;
 
     beforeEach(() => {
         jest.clearAllMocks();
         passwordService = new PasswordService();
+        mockHash = jest.spyOn(bcrypt, 'hash');
+        // Set default mock implementation that works
+        mockHash.mockImplementation((password: string) => Promise.resolve(`hashed_${password}`));
+    });
+
+    afterEach(() => {
+        mockHash.mockRestore();
     });
 
     describe('validatePassword', () => {
@@ -65,12 +73,15 @@ describe('PasswordService', () => {
         });
 
         it('should throw ApiError when bcrypt fails', async () => {
-            // Mock bcrypt to throw an error
-            jest.spyOn(bcrypt, 'hash').mockRejectedValueOnce(new Error('Bcrypt internal error') as never);
+            // Mock bcrypt.hash to throw an error
+            const mockHash = jest.spyOn(bcrypt, 'hash');
+            mockHash.mockImplementationOnce(() => Promise.reject(new Error('Bcrypt internal error')));
 
             await expect(passwordService.hashPassword('Test123!@'))
                 .rejects
                 .toThrow(ApiError);
+            // Clean up
+            mockHash.mockRestore();
         });
 
         it('should throw error for non-string password', async () => {
@@ -82,18 +93,23 @@ describe('PasswordService', () => {
 
     describe('comparePassword', () => {
         it('should return true for matching password', async () => {
-            const password = 'Test123!@';
-            const hash = await passwordService['hashPassword'](password);
-            const result = await passwordService['comparePassword'](password, hash);
+            const mockCompare = jest.spyOn(bcrypt, 'compare');
+            mockCompare.mockResolvedValue(true as never);
+
+            const result = await passwordService.comparePassword('password123', 'hashedPassword');
             expect(result).toBe(true);
+
+            mockCompare.mockRestore();
         });
 
         it('should return false for non-matching password', async () => {
-            jest.mocked(bcrypt.compare).mockImplementationOnce(() => Promise.resolve(false));
+            const mockCompare = jest.spyOn(bcrypt, 'compare');
+            mockCompare.mockResolvedValue(false as never);
 
-            const hash = await passwordService['hashPassword']('Test123!@');
-            const result = await passwordService['comparePassword']('Test123!#', hash);
+            const result = await passwordService.comparePassword('wrongPassword', 'hashedPassword');
             expect(result).toBe(false);
+
+            mockCompare.mockRestore();
         });
     });
 }); 

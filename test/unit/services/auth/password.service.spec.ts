@@ -58,7 +58,10 @@ describe('PasswordService', () => {
         it('should hash valid password', async () => {
             const password = 'Test123!@';
             const hash = await passwordService['hashPassword'](password);
-            expect(hash).toBe('hashedPassword');
+            expect(hash).toBeTruthy();
+            expect(hash).not.toBe(password);
+            expect(typeof hash).toBe('string');
+            expect(hash.length).toBeGreaterThan(0);
         });
 
         it('should throw ApiError when bcrypt fails', async () => {

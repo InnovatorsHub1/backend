@@ -41,6 +41,12 @@ jobs:
       - name: Install dependencies
         run: npm install
         
+      - name: Generate JWT Keys
+        run: |
+          mkdir -p keys
+          openssl genpkey -algorithm RSA -out keys/private.pem -pkeyopt rsa_keygen_bits:2048
+          openssl rsa -pubout -in keys/private.pem -out keys/public.pem
+
       - name: Run test
         run: npm run test:unit
 

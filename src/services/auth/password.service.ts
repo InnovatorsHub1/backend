@@ -13,11 +13,15 @@ export class PasswordService {
 
     async hashPassword(password: string): Promise<string> {
         this.validatePassword(password);
-        const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
-        if (!hashedPassword) {
+        try {
+            const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
+            if (!hashedPassword) {
+                throw new ApiError('Failed to hash password', StatusCodes.INTERNAL_SERVER_ERROR, 'PasswordService');
+            }
+            return hashedPassword;
+        } catch (error) {
             throw new ApiError('Failed to hash password', StatusCodes.INTERNAL_SERVER_ERROR, 'PasswordService');
         }
-        return hashedPassword;
     }
 
     async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {

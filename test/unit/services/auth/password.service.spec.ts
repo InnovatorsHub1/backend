@@ -66,9 +66,9 @@ describe('PasswordService', () => {
 
         it('should throw ApiError when bcrypt fails', async () => {
             // Mock bcrypt to throw a real error
-            jest.mocked(bcrypt.hash).mockRejectedValueOnce(new ApiError('Bcrypt internal error', StatusCodes.INTERNAL_SERVER_ERROR, 'PasswordService') as never);
+            jest.mocked(bcrypt.hash).mockRejectedValueOnce(new Error('Bcrypt internal error') as never);
 
-            await expect(passwordService['hashPassword']('Test123!@'))
+            await expect(passwordService.hashPassword('Test123!@'))
                 .rejects
                 .toThrow(ApiError);
         });

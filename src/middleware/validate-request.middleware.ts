@@ -58,7 +58,6 @@ export const createValidator = (rules: ValidationRules = {}) => {
     }
 
     if (validationErrors.length > 0) {
-      console.log(validationErrors);
       throw new ApiError(
         validationErrors.join(', '),
         StatusCodes.BAD_REQUEST,

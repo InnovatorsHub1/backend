@@ -30,12 +30,19 @@ const config: Config.InitialOptions = {
       statements: 1
     }
   },
-  coverageReporters: ['text', 'text-summary'], 
+  coverageReporters: ['text', 'text-summary'],
   moduleNameMapper: {
     '^@gateway/(.*)$': '<rootDir>/src/$1',
   },
   setupFiles: ['reflect-metadata'],
-  moduleFileExtensions: ['ts', 'js', 'json']
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  // Add these new configurations
+  detectOpenHandles: true,
+  forceExit: false,
+  testTimeout: 30000,
+  setupFilesAfterEnv: ['<rootDir>/setup.ts'],
+  clearMocks: true,
+  restoreMocks: true
 };
 
 export default config;

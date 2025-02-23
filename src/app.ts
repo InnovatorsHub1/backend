@@ -9,6 +9,9 @@ import { requestId } from './middleware/request-id.middleware';
 import { requestLogger } from './middleware/request-logger.middleware';
 import { injectable, inject } from 'inversify';
 import { TYPES } from './core/di/types';
+import { deviceInfoMiddleware } from './middleware/request-device-info.middlware';
+import cookieParser from 'cookie-parser';
+import { getMongoConnection } from './utils/mongoConnection';
 
 const logger = new WinstonLogger('App');
 
@@ -31,10 +34,12 @@ export class App {
 
   private setupMiddleware(): void {
     this.app.use(requestId);
+    this.app.use(deviceInfoMiddleware);
     this.app.use(requestLogger);
     setupSecurityMiddleware(this.app);
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
   }
 
   private initializeRoutes(): void {
@@ -76,6 +81,10 @@ export class App {
     if (this.server) {
       await new Promise<void>((resolve) => this.server.close(() => resolve()));
       logger.info('Server stopped');
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await getMongoConnection().disconnect();
     }
   }
 }

@@ -91,7 +91,7 @@ export class ValidationService implements IValidationService {
         continue;
       }
 
-      const isValid = validator(value, rule.params);
+      const isValid  = validator(value, rule.params);
       if (!isValid) {
         errors.push({
           field: '',

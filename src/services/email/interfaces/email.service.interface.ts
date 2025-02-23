@@ -20,6 +20,6 @@ export interface IEmailService {
   validateTemplate(templateName: string): Promise<boolean>;
 
   // Utilities
-  validateEmailAddress(email: string): boolean;
-  validateEmailAddresses(emails: string[]): boolean;
+  validateEmailAddress(email: string): boolean; // Done
+  validateEmailAddresses(emails: string[]): boolean; // Done
 }

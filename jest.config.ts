@@ -35,7 +35,14 @@ const config: Config.InitialOptions = {
     '^@gateway/(.*)$': '<rootDir>/src/$1',
   },
   setupFiles: ['reflect-metadata'],
-  moduleFileExtensions: ['ts', 'js', 'json']
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  // Add these new configurations
+  detectOpenHandles: true,
+  forceExit: false,
+  testTimeout: 30000,
+  setupFilesAfterEnv: ['<rootDir>/setup.ts'],
+  clearMocks: true,
+  restoreMocks: true
 };
 
 export default config;

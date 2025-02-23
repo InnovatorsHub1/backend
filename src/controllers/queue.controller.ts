@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { inject, injectable } from 'inversify';
-import { QueueService } from '../services/queue.service';
+import { QueueService } from '../services/queue/queue.service';
 import { TYPES } from '../core/di/types';
 import { StatusCodes } from 'http-status-codes';
 
@@ -20,6 +20,20 @@ export class QueueController {
       res.status(StatusCodes.OK).json({ message: 'Job added', jobId: job.id });
     } catch (error) {
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Failed to enqueue job', error });
+    }
+  }
+
+  /**
+ * ✅ Remove a job from the queue before it starts processing.
+ */
+  public async dequeue(req: Request, res: Response): Promise<void> {
+    const { jobId } = req.params;
+    const success = await this.queueService.dequeue(jobId);
+  
+    if (success) {
+      res.status(StatusCodes.OK).json({ message: `Job ${jobId} dequeued.` });
+    } else {
+      res.status(StatusCodes.NOT_FOUND).json({ message: 'Job not found or cannot be dequeued.' });
     }
   }
 

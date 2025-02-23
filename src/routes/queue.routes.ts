@@ -16,6 +16,7 @@ export class QueueRoutes {
 
   private setupRoutes(): void {
     this.router.post('/enqueue', this.queueController.enqueue.bind(this.queueController));
+    this.router.post('/dequeue/:jobId', this.queueController.dequeue.bind(this.queueController));
     this.router.get('/status/:jobId', this.queueController.getJobStatus.bind(this.queueController));
     this.router.post('/cancel/:jobId', this.queueController.cancelJob.bind(this.queueController));
     this.router.post('/retry/:jobId', this.queueController.retryJob.bind(this.queueController));

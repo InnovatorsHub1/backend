@@ -12,7 +12,7 @@ import { PDFService } from '../../services/pdf/pdf.service';
 import { TemplateService } from '../../services/pdf/template.service';
 import { PDFController } from '../../controllers/pdf.controller';
 import { PDFRoutes } from '../../routes/pdf.routes';
-import { QueueService } from '../../services/queue.service';
+import { QueueService } from '../../services/queue/queue.service';
 import { QueueController } from '../../controllers/queue.controller';
 import { QueueRoutes } from '../../routes/queue.routes';
 

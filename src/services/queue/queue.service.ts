@@ -1,8 +1,9 @@
-import { Queue, Worker, QueueEvents, Job, QueueOptions } from 'bullmq';
+import { Queue, QueueEvents, Job, QueueOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { injectable } from 'inversify';
-import { config } from '../config';
+import { config } from '../../config';
 import { WinstonLogger } from '@gateway/core/logger/winston.logger';
+import {worker} from './workers.queue';
 
 export enum JobState {
   QUEUED = 'queued',
@@ -11,7 +12,8 @@ export enum JobState {
   FAILED = 'failed',
   CANCELLED = 'cancelled',
   SCHEDULED = 'scheduled',
-  RETRYING = 'retrying'
+  RETRYING = 'retrying',
+  PRIORITIZED = 'prioritized'
 }
 
 const logger = new WinstonLogger('QueueService');
@@ -19,7 +21,6 @@ const logger = new WinstonLogger('QueueService');
 @injectable()
 export class QueueService {
   private queue: Queue;
-  private worker: Worker;
   private queueEvents: QueueEvents;
   private redisConnection : IORedis;
   
@@ -28,6 +29,7 @@ export class QueueService {
     this.redisConnection = new IORedis(config.redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
+      
     });
     
 
@@ -38,9 +40,14 @@ export class QueueService {
     this.queue = new Queue(config.queueName, redisOptions);
     this.queueEvents = new QueueEvents(config.queueName, redisOptions);
     this.setupEventListeners();
-    this.worker = this.createWorker();
   
-    
+    logger.info('✅ Queue Service initialized.');
+
+    if (!worker) {
+      logger.error('❌ Worker initialization failed.');
+    } else {
+      logger.info('🚀 Worker successfully linked to Queue Service.');
+    }
   }
 
   public getQueueEvents() {
@@ -68,6 +75,39 @@ export class QueueService {
     return job;
   }
 
+ /**
+ * ✅ Remove a job from the queue before it starts processing.
+ * @param jobId - The ID of the job to remove.
+ * @returns True if successfully removed, otherwise false.
+ */
+public async dequeue(jobId: string): Promise<boolean> {
+  try {
+    const job = await this.queue.getJob(jobId);
+    if (!job) {
+      logger.warn(`⚠️ Job ${jobId} not found.`);
+      return false;
+    }
+
+    const jobState = await job.getState();
+
+    const mappableStates = [JobState.QUEUED, JobState.SCHEDULED]; 
+
+    if (mappableStates.includes(jobState as JobState)) {
+      await job.remove();
+      logger.info(`🗑️ Job ${jobId} successfully dequeued.`);
+      return true;
+    }
+
+    logger.warn(`⚠️ Job ${jobId} is in state "${jobState}" and cannot be dequeued.`);
+    return false;
+  } catch (error) {
+    logger.error(`❌ Error dequeuing job ${jobId}:`, error);
+    return false;
+  }
+}
+
+
+
   /**
    * ✅ Get the status of a job.
    * @param jobId - The ID of the job.
@@ -80,8 +120,13 @@ export class QueueService {
         logger.warn(`⚠️ Job with ID ${jobId} not found.`);
         return null;
       }
-      const state = await job.getState();
+      let state = await job.getState();
       logger.info(`📊 Job ${jobId} state: ${state}`);
+
+      if (state === 'prioritized' && job.attemptsMade >= config.maxRetries) {
+        state = 'failed';
+          
+      }
     
       switch (state) {
         case 'completed': return JobState.COMPLETED;
@@ -89,7 +134,7 @@ export class QueueService {
         case 'waiting': return JobState.QUEUED;
         case 'active': return JobState.PROCESSING;
         case 'delayed': return JobState.SCHEDULED;
-        case 'prioritized': return JobState.QUEUED;
+        case 'prioritized': return JobState.PRIORITIZED;
         default: logger.warn(`⚠️ Unknown job state for job ${jobId}: ${state}`);
         return null;
       }
@@ -171,53 +216,7 @@ export class QueueService {
     await this.queue.drain();
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  protected createWorker(): Worker {
-    logger.info('🔄 Creating a new worker instance...');
-    
-    return new Worker(
-      config.queueName,
-      async (job) => {
-        try {
-          logger.info(`🛠️ Worker picked up job ${job.id} with data: ${JSON.stringify(job.data)}`);
   
-          await this.delay(config.pollInterval);
-  
-          logger.info(`✅ Job ${job.id} completed.`);
-          return { success: true };
-  
-        } catch (error: unknown) {
-          let errorMessage = 'Unknown error occurred';
-  
-          if (error instanceof Error) {
-            errorMessage = error.message;
-          } else if (typeof error === 'string') {
-            errorMessage = error;
-          }
-  
-          logger.error(`❌ Error processing job ${job.id}: ${errorMessage}`, { jobId: job.id, jobData: job.data });
-          throw new Error(`Failed to process job ${job.id}: ${errorMessage}`);
-        }
-      },
-      {
-        connection: this.redisConnection,
-        concurrency: config.concurrency,
-        limiter: {max: 1, duration: 15000}
-      }
-    );
-  }
-  
-  public startWorker(): void {
-    if (!this.worker) {
-        logger.info('🚀 Starting worker manually...');
-        this.worker = this.createWorker();
-    } else {
-        logger.info('✅ Worker is already running.');
-    }
-}
 
   /**
    * ✅ Register event listeners for job lifecycle monitoring.
@@ -261,7 +260,6 @@ private setupEventListeners(): void {
     
     this.queueEvents.removeAllListeners(); 
   
-    await this.worker.close();
     await this.queue.close();
     await this.queueEvents.close();
     await this.redisConnection.quit();

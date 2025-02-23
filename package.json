@@ -10,7 +10,7 @@
     "lint:fix": "eslint 'src/*/.ts' --fix",
     "prettier:check": "prettier --check 'src/*/.{ts,json}'",
     "prettier:fix": "prettier --write 'src/*/.{ts,json}'",
-    "test:unit": "jest --config jest.config.ts"
+    "test:unit": "jest --config jest.config.ts --detectOpenHandles --runInBand --forceExit"
   },
   "keywords": [],
   "author": "",

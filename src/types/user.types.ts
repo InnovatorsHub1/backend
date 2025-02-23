@@ -1,9 +1,9 @@
 export interface IUser {
     name: string;
     email: string;
-    password: string;
-    isVerify: boolean;
+    password?: string;
+    isVerify?: boolean;
     resetToken?: string;
-    createdAt: Date;
+    createdAt?: Date;
 
 }

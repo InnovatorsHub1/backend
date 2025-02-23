@@ -7,7 +7,7 @@ import { ApiError } from '../../core/errors/api.error';
 @injectable()
 export class TemplateService {
   private logger = new WinstonLogger('TemplateService');
-  private templatesPath = join(process.cwd(), 'templates', 'documents'); // Updated path
+  private templatesPath = join(process.cwd(), 'templates', 'documents', 'emails'); // Updated path
 
   async renderTemplate(templateName: string, context: Record<string, any>): Promise<string> {
     try {

@@ -125,17 +125,21 @@ export class WinstonLogger implements ILogger {
    * @param {Error} [error] - Error object
    * @param {MaskableData} [meta] - Optional metadata
    */
-  error(message: string, error?: Error, meta?: MaskableData): void {
+  error(message: string, error?: Error | unknown, meta?: MaskableData): void {
     const maskedMeta = meta ? this.maskSensitiveData(meta) : undefined;
     this.logger.error(message, {
       ...maskedMeta,
-      error: error ?
+      error: error instanceof Error ?
         {
           name: error.name,
           message: error.message,
           stack: error.stack,
         } :
-        undefined,
+        error ?
+          {
+            message: error.toString(),
+          } :
+          undefined,
     });
   }
 

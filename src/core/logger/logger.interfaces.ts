@@ -12,7 +12,7 @@ type LogContext = {
 };
 
 export type MaskableData = LogMeta & {
-  [key: string]: string | undefined | Record<string, unknown>;
+  [key: string]: string | number | undefined | Record<string, unknown>;
 };
 
 export interface LogMeta {

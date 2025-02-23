@@ -2,6 +2,7 @@ import { App } from './app';
 import { WinstonLogger } from './core/logger/winston.logger';
 import { container } from './core/di/container';
 
+
 const logger = new WinstonLogger('Main');
 
 process.on('uncaughtException', (error: Error) => {

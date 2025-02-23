@@ -59,82 +59,7 @@ curl http://localhost:3000/api/health \
 }
 ```
 
-### Authentication Routes
-
-#### Signup
-
-```bash
-curl -X POST \
-  http://localhost:3000/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "Yourpassword2@",
-    "firstName": "John",
-    "lastName": "Doe",
-    "phoneNumber": "+1234567890"    
-  }'
-```
-#### Response:
-
-```json
-{
-  "message": "signup success"
-}
-```
-#### Login
-
-```bash
-curl -c cookies.txt -X POST \
-  http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "Yourpassword2@"
-  }'
-```
-#### Response:
-
-```json
-{
-  "message": "login success"
-}
-```
-
-#### Refresh
-
-```bash
-curl --cookie cookies.txt --cookie-jar cookies.txt -X POST \
-  http://localhost:3000/api/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-#### Response:
-
-```json
-{
-  "message": "refresh success"
-}
-```
-
-#### Logout
-
-```bash
-curl --cookie cookies.txt -X POST \
-  http://localhost:3000/api/auth/logout \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-#### Response:
-
-```json
-{
-  "message": "logout success"
-}
-```
-
 ### PDF Generation
-
 
 ```bash
 curl -X POST \
@@ -186,7 +111,6 @@ curl -X POST \
 ### with Docker
 
 ```bash
-docker-compose up -d
 # All tests
 docker-compose exec app npm run test:unit
 ```

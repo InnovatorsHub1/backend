@@ -13,7 +13,7 @@ export class MongoConnection implements IMongoConnection {
   private logger = new WinstonLogger('MongoDB');
   private static instance: MongoConnection;
 
-  private constructor() { } // Make constructor private for singleton pattern
+  private constructor() {} // Make constructor private for singleton pattern
 
   async connect(): Promise<void> {
     try {

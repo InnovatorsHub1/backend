@@ -21,11 +21,40 @@ docker-compose up --build
 ```
 
 ## Environment Setup
+
+### Configure .env:
+
+```env
+PORT=3000
+APP_NAME=api-gateway
+NODE_ENV=development
+IS_ELASTIC_CONFIGURED=false
+ELASTIC_URL=http://localhost:9200
+BASE_URL=/api
+CORS_ORIGINS=*
+COOKIE_SECRET=your-secret-key
+API_VERSION=v1
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=password
+MONGO_URI=mongodb://admin:password@localhost:27017/test?authSource=admin
+
+# Redis configuration
+REDIS_URL=redis://localhost:6379
+QUEUE_NAME=default
+MAX_RETRIES=3
+RETRY_DELAY=300000 # 5 minutes
+JOB_TIMEOUT=3600000 # 1 hour
+
+# Worker configuration
+CONCURRENCY=4
+PREFETCH_COUNT=10
+POLL_INTERVAL=1000 # 1 second
+MAX_TASKS_PER_CHILD=1000
+```
+
 https://docs.google.com/document/d/1_PNVU0uA0xQnSxFRXfW1dFHsoepPcC7AbL1gZynQx5w/edit?usp=sharing
 
 if you dont have permission please talk with shay saruusi elshten
-
-
 
 ### Install dependencies:
 
@@ -40,6 +69,7 @@ npm run dev
 ```
 
 ## API Endpoints
+
 ### Health Check
 
 ```bash
@@ -181,7 +211,31 @@ curl -X POST \
   --output invoice.pdf
 ```
 
-## Running Tests 
+### Queue :
+
+```bash
+curl -X POST http://localhost:3000/api/queue/enqueue \
+ -H "Content-Type: application/json" \
+ -d '{
+   "task": "process video",
+   "priority": 1
+ }'
+```
+
+get queue status
+
+```bash
+curl -X GET http://localhost:3000/api/queue/status/{jobId}
+
+```
+
+cancel job :
+
+```bash
+curl -X POST http://localhost:3000/api/queue/cancel/{jobId}
+```
+
+## Running Tests
 
 ### with Docker
 

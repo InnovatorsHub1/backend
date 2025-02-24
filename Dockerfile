@@ -12,6 +12,9 @@ FROM alpine:3.19
 # Install Node.js and npm
 RUN apk add --no-cache nodejs npm
 
+# Install build tools needed for bcrypt and other native modules
+RUN apk add --no-cache python3 make g++
+
 # Install Chromium and required dependencies
 RUN apk add --no-cache \
     chromium \
@@ -33,8 +36,9 @@ RUN mkdir -p /app/coverage && \
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies
+# Install dependencies and rebuild bcrypt for the current architecture
 RUN npm install && \
+    npm rebuild bcrypt --build-from-source && \
     npm install -g nodemon typescript ts-node tsconfig-paths tsc-alias pino-pretty
 
 # Copy source code and configuration files

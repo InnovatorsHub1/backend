@@ -34,9 +34,17 @@ export interface HealthStatus {
     latency: number;
   }
   
+  export interface DependencyCheckResult {
+    status: 'healthy' | 'unhealthy';
+    latencyMs: number;
+    lastChecked: string;
+    error?: string; 
+  }
+
   export interface IHealthService {
     checkHealth(): Promise<HealthStatus>;
     getMetrics(): Promise<SystemMetrics>;
     checkDependencies(): Promise<DependencyStatus>;
   }
+  
   

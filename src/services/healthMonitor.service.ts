@@ -1,5 +1,5 @@
 import { WinstonLogger } from '../core/logger/winston.logger';
-import { SystemMetrics, DependencyStatus, NetworkStats} from '../types/healthMonitor.types';
+import { SystemMetrics, DependencyStatus, NetworkStats, DependencyCheckResult} from '../types/healthMonitor.types';
 import { injectable } from 'inversify';
 import os from 'os';
 import { exec } from 'child_process';
@@ -89,7 +89,7 @@ export class HealthMonitorService {
             return { bytesReceived: 0, bytesSent: 0, timestamp: Date.now() };
         }
     }
-    // Get Network Statistics
+    
     public async getNetworkStats(): Promise<NetworkStats> {
         const interfaces = os.networkInterfaces();
         let totalUploadSpeed = 0;
@@ -173,17 +173,62 @@ export class HealthMonitorService {
         return metrics;
     }
 
-    public async monitorDependencies(): Promise<DependencyStatus> {
-        const dependencies: DependencyStatus = {};
+     // Check MongoDB dependency health
+     private async checkMongoDBHealth(): Promise<DependencyCheckResult> {
         try {
             const startTime = Date.now();
             await mongoConnection.getClient().db().command({ ping: 1 });
-            dependencies.mongodb = { status: 'healthy', latencyMs: Date.now() - startTime, lastChecked: new Date().toISOString() };
-            this.logger.info('MongoDB health check passed');
+            const latencyMs = Date.now() - startTime;
+            this.logger.info('MongoDB health check passed', { latencyMs });
+            return { 
+                status: 'healthy', 
+                latencyMs, 
+                lastChecked: new Date().toISOString() 
+            };
         } catch (error) {
-            dependencies.mongodb = { status: 'unhealthy', latencyMs: 0, lastChecked: new Date().toISOString() };
-            this.logger.error('MongoDB health check failed', {  error });
+            this.logger.error('MongoDB health check failed', { error });
+            return { 
+                status: 'unhealthy', 
+                latencyMs: 0, 
+                lastChecked: new Date().toISOString(),
+                error: error instanceof Error ? error.message : String(error)
+            };
         }
+    }
+
+    //Check Redis dependency health
+    private async checkRedisHealth(): Promise<DependencyCheckResult> {
+       
+        try {
+           
+            // Placeholder return
+            return { 
+                status: 'healthy', 
+                latencyMs: 0, 
+                lastChecked: new Date().toISOString() 
+            };
+        } catch (error) {
+            // this.logger.error('Redis health check failed', { error });
+            return { 
+                status: 'unhealthy', 
+                latencyMs: 0, 
+                lastChecked: new Date().toISOString(),
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    }
+    public async monitorDependencies(): Promise<DependencyStatus> {
+        const dependencies: DependencyStatus = {};  
+        // Uncomment when Redis check is implemented
+        // const [mongoStatus, redisStatus]
+        const [mongoStatus] = await Promise.all([
+            this.checkMongoDBHealth(),
+            // Uncomment when Redis check is implemented
+            // this.checkRedisHealth(),
+        ]);
+        dependencies.mongodb = mongoStatus;
+        // Uncomment when Redis check is implemented
+        // dependencies.redis = redisStatus;
         return dependencies;
     }
 }

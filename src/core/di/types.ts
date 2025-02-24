@@ -12,5 +12,12 @@ export const TYPES = {
     RetryService: Symbol.for('RetryService'),
     QueueService: Symbol.for('QueueService'),
     QueueController: Symbol.for('QueueController'),
-    QueueRoutes: Symbol.for('QueueRoutes')
+    QueueRoutes: Symbol.for('QueueRoutes'),
+    UserRepository: Symbol.for('UserRepository'),
+    JwtService: Symbol.for('JwtService'),
+    AuthService: Symbol.for('AuthService'),
+    PasswordService: Symbol.for('PasswordService'),
+    SessionService: Symbol.for('SessionService'),
+    AuthController: Symbol.for('AuthController'),
+    AuthRoutes: Symbol.for('AuthRoutes')
 };

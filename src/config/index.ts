@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { IConfig } from '../types';
+import path = require('path');
 
 dotenv.config();
 
@@ -14,8 +15,8 @@ const getConfig = (): IConfig => ({
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['*'],
   cookieSecret: process.env.COOKIE_SECRET || 'default-secret',
   apiVersion: process.env.API_VERSION || 'v1',
-  jwtPublicKeyPath: process.env.JWT_PUBLIC_KEY_PATH,
-  jwtPrivateKeyPath: process.env.JWT_PRIVATE_KEY_PATH,
+  jwtPublicKeyPath: path.resolve(process.cwd(), process.env.JWT_PUBLIC_KEY_PATH || './keys/public.pem'),
+  jwtPrivateKeyPath: path.resolve(process.cwd(), process.env.JWT_PRIVATE_KEY_PATH || './keys/private.pem'),
   jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
   jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h',
 

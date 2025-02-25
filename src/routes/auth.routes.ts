@@ -15,11 +15,11 @@ export class AuthRoutes {
 
   private setupRoutes(): void {
     const loginValidator = createValidator({
-      body: ['email', 'password']
+      body: ['email', 'password'],
     });
 
     const signupValidator = createValidator({
-      body: ['email', 'password']
+      body: ['email', 'password'],
     });
 
     this.router.post('/signup', signupValidator, this.controller.signup.bind(this.controller));

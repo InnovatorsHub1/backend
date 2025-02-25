@@ -18,7 +18,9 @@ export class UserRoutes {
     this.router.get('/users:id');
 
     this.router.put('/users:id');
+
     this.router.delete('/users:id');
+    
     this.router.post('/users:id/restore');
   }
 }

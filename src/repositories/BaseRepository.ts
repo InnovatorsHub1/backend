@@ -1,12 +1,12 @@
-import { Collection, ObjectId, Filter, Sort, WithId, OptionalUnlessRequiredId } from 'mongodb';
+import { Collection, ObjectId, Filter, Sort, WithId, OptionalUnlessRequiredId, Timestamp } from 'mongodb';
 import { IBaseRepository, QueryOptions } from './IBaseRepository';
 
 
 export interface BaseDocument {
-  _id?: string | ObjectId;
+  _id?:ObjectId;
   isDeleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export class BaseRepository<T extends BaseDocument> implements IBaseRepository<T> {

@@ -1,8 +1,17 @@
 import { BaseDocument } from '@gateway/repositories/BaseRepository';
 
 interface IBaseUser extends BaseDocument {
-    email: string;
-    username: string;
+    username: {
+        type:string;
+        required: true;
+        minLength: 3;
+        unique: true;
+    };
+    email: {
+        type: string;
+        required: true;
+        unique: true;
+    }
     failedLoginAttempts: number;
     lockUntil?: Date;
     lastLogin?: Date;

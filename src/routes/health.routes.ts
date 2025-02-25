@@ -4,15 +4,11 @@ import { createValidator } from '@gateway/middleware/validate-request.middleware
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../core/di/types';
 
-
 @injectable()
 export class HealthRoutes {
   public router: Router;
 
-
-  constructor(
-    @inject(TYPES.HealthController) private readonly controller: HealthController
-  ) {
+  constructor(@inject(TYPES.HealthController) private readonly controller: HealthController) {
     this.router = Router();
     this.setupRoutes();
   }
@@ -23,10 +19,6 @@ export class HealthRoutes {
       query: ['version']
     });
 
-    this.router.get(
-      '/',
-      healthCheckValidator,
-      this.controller.check.bind(this.controller)
-    );
+    this.router.get('/', healthCheckValidator, this.controller.check.bind(this.controller));
   }
 }

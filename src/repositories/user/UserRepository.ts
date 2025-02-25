@@ -13,9 +13,9 @@ import { CollectionName } from '@gateway/constants/db';
 export class UserRepository extends BaseRepository<IUser> {
     constructor() {
         try {
-            getMongoConnection().getClient();
-        } catch (error) {
             getMongoConnection().connect();
+        } catch (error) {
+            throw new ApiError('Failed to connect to database', StatusCodes.INTERNAL_SERVER_ERROR, 'UserRepository');
         }
         const collection = getMongoConnection().getClient().db().collection<IUser>(CollectionName.USERS);
         super(collection);

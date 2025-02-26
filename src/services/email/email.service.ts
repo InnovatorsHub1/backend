@@ -121,7 +121,7 @@ export class EmailService implements IEmailService {
     * Sends a welcome email to a new user.
     *   
     * @param user - The user object containing the recipient's email.
-    * @returns  - Returns `true` if the email was sent successfully, otherwise `false`.
+    * @returns  - A Promise that resolves to `true` if the email was sent successfully, otherwise `false`.
     */
     async sendWelcomeEmail(user: IUser): Promise<boolean> {
 
@@ -133,14 +133,39 @@ export class EmailService implements IEmailService {
 
         // Build the options object
         const emailOptions: IEmailOptions = {
-            to: user.email || " ",
+            to: user.email,
             subject: 'Welcome to Auto Docs!',
         };
 
         // Send the Email
         return await this.sendTemplatedEmail("welcome", user, emailOptions)
+    };
 
 
+    /**
+    * Sends a password reset email to the user with a unique reset token.
+    * 
+    * @param user - The user object containing user details such as email.
+    * @param resetToken - A unique token used for password reset.
+    * @returns A Promise that resolves to `true` if the email was sent successfully, otherwise `false`.
+    */ 
+    async sendPasswordResetEmail(user: IUser, resetToken: string): Promise<boolean> {
+
+        // validate the email address
+        if (!this.validateEmailAddress(user.email)) {
+            this.logger.error("Invalid Email")
+            return false
+        };
+
+        // Define the reset link
+        const resetLink = `http://the-app-domain/api/auth/forgot-password/${resetToken}`; // TODO ask the developer that define the routes
+
+        // Build the options object
+        const emailOptions: IEmailOptions = {
+            to: user.email ,
+            subject: 'Reset Password -  Auto Docs!',
+        };
+        return await this.sendTemplatedEmail("resetPassword", {...user, resetLink}, emailOptions)
     }
 
 }

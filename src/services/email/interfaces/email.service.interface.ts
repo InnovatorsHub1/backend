@@ -16,8 +16,8 @@ export interface IEmailService {
   sendInvoiceEmail(user: IUser, invoiceNumber: string, pdfBuffer: Buffer): Promise<boolean>;
 
   // Template management
-  getTemplate(templateName: string): Promise<IEmailTemplate>;
-  validateTemplate(templateName: string): Promise<boolean>;
+  getTemplate?(templateName: string): Promise<IEmailTemplate>;
+  validateTemplate?(templateName: string): Promise<boolean>;
 
   // Utilities
   validateEmailAddress(email: string): boolean; // Done

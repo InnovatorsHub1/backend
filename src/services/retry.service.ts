@@ -194,7 +194,7 @@ export class RetryService {
   /**
  * Retrieves or creates a circuit breaker for a given operation.
  */
-private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
+  private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
     if (!this.circuitBreakers.has(id)) {
       this.circuitBreakers.set(id, {
         state: CircuitBreakerState.CLOSED,
@@ -217,13 +217,13 @@ private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
   /**
  * Ensures the delay is within the allowed range.
  */
-   private normalizeDelay(delay: number): number {
+  private normalizeDelay(delay: number): number {
     return Math.max(
       RetryService.MIN_DELAY,
       Math.min(delay, RetryService.MAX_DELAY)
     );
   }
-  
+
 
   private normalizeCircuitBreakerOptions(options: Partial<CircuitBreakerOptions>): CircuitBreakerOptions {
     return {
@@ -235,10 +235,10 @@ private getOrCreateCircuitBreaker(id: string): CircuitBreakerMetrics {
   /**
  * Generates a unique operation ID for tracking.
  */
-private generateOperationId(): string {
+  private generateOperationId(): string {
     return `op_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   }
-  
+
   /**
    * Retrieves or creates retry metrics for a given operation.
    */
@@ -253,22 +253,22 @@ private generateOperationId(): string {
     }
     return this.metrics.get(id)!;
   }
-  
+
 
   private calculateDelay(attempt: number, options: RetryOptions): number {
     const baseDelay = options.delay;
     switch (options.strategy) {
-        case 'linear':
-            return baseDelay;
-        case 'exponential':
-            return Math.min(baseDelay * Math.pow(2, attempt), RetryService.MAX_DELAY);
-        case 'random':
-            const randomFactor = Math.random() * (1.5 - 0.5) + 0.5;
-            return Math.min(baseDelay * randomFactor, RetryService.MAX_DELAY);
-        default:
-            return baseDelay;
+      case 'linear':
+        return baseDelay;
+      case 'exponential':
+        return Math.min(baseDelay * Math.pow(2, attempt), RetryService.MAX_DELAY);
+      case 'random':
+        const randomFactor = Math.random() * (1.5 - 0.5) + 0.5;
+        return Math.min(baseDelay * randomFactor, RetryService.MAX_DELAY);
+      default:
+        return baseDelay;
     }
-}
+  }
 
   private shouldRetry(error: unknown, exceptions: Array<new (...args: any[]) => Error>): boolean {
     return exceptions.some(Exception => error instanceof Exception);
@@ -288,8 +288,8 @@ private generateOperationId(): string {
       operations: Array.from(this.metrics.entries()).map(([id, metrics]) => ({
         id,
         ...metrics,
-        successRate: metrics.totalAttempts > 0 
-          ? (metrics.successfulAttempts / metrics.totalAttempts) * 100 
+        successRate: metrics.totalAttempts > 0
+          ? (metrics.successfulAttempts / metrics.totalAttempts) * 100
           : 0
       }))
     });

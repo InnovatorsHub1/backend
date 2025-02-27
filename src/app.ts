@@ -9,7 +9,7 @@ import { requestId } from './middleware/request-id.middleware';
 import { requestLogger } from './middleware/request-logger.middleware';
 import { injectable, inject } from 'inversify';
 import { TYPES } from './core/di/types';
-
+import { getMongoConnection } from './utils/mongoConnection';
 const logger = new WinstonLogger('App');
 
 @injectable()
@@ -57,6 +57,7 @@ export class App {
 
   public async start(): Promise<void> {
     try {
+      await getMongoConnection().connect();
       if (!config.port || isNaN(config.port)) {
         throw new Error('Invalid port configuration');
       }

@@ -13,12 +13,14 @@ export class MongoConnection implements IMongoConnection {
   private logger = new WinstonLogger('MongoDB');
   private static instance: MongoConnection;
 
-  private constructor() {} // Make constructor private for singleton pattern
+  private constructor() { } // Make constructor private for singleton pattern
 
   async connect(): Promise<void> {
     try {
+      console.log(process.env.MONGO_URI);
       this.client = new MongoClient(process.env.MONGO_URI!);
       await this.client.connect();
+      console.log('success');
       this.logger.info('Connected to MongoDB');
     } catch (error) {
       this.logger.error('MongoDB connection failed', error);

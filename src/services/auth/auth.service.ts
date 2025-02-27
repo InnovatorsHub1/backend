@@ -6,13 +6,15 @@ import { WinstonLogger } from '../../core/logger/winston.logger';
 import { ApiError } from '../../core/errors/api.error';
 import { GoogleUser } from './auth.types';
 import { UserRepository } from '../../repositories/UserRepository';
+import { TYPES } from '../../core/di/types';
+import { inject } from 'inversify';
 
 @injectable()
 export class AuthService {
   private readonly logger = new WinstonLogger('AuthService');
   private readonly oAuth2Client: OAuth2Client;
 
-  constructor(private readonly userRepository: UserRepository) {
+  constructor(@inject(TYPES.UserRepository) private readonly userRepository: UserRepository) {
     this.oAuth2Client = new OAuth2Client(
       config.googleClientID,
       config.googleClientSecret,

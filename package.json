@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@jest/types": "^29.6.3",
     "@types/compression": "^1.7.5",
     "@types/cookie-session": "^2.0.48",
     "@types/cors": "^2.8.17",
@@ -25,6 +26,7 @@
     "@types/mocha": "^10.0.10",
     "@types/multer": "^1.4.12",
     "@types/nock": "^11.1.0",
+    "@types/passport": "^1.0.17",
     "@types/puppeteer": "^5.4.7",
     "@types/supertest": "^6.0.2",
     "@types/swagger-jsdoc": "^6.0.4",
@@ -59,6 +61,7 @@
     "express-async-errors": "^3.1.1",
     "express-joi-validation": "^5.0.1",
     "express-rate-limit": "^7.5.0",
+    "google-auth-library": "^9.15.1",
     "helmet": "^7.2.0",
     "hpp": "^0.2.3",
     "http-status-codes": "^2.3.0",
@@ -69,6 +72,7 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.0.2",
+    "passport": "^0.7.0",
     "pdf-lib": "^1.17.1",
     "pino-pretty": "^10.3.1",
     "puppeteer": "^24.1.1",
@@ -80,5 +84,6 @@
     "uuid": "^11.0.5",
     "winston": "^3.11.0",
     "winston-elasticsearch": "^0.17.4"
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

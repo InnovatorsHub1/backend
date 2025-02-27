@@ -1,20 +1,18 @@
-import { injectable, inject } from 'inversify';
+import { injectable } from 'inversify';
 import { OAuth2Client } from 'google-auth-library';
 import axios from 'axios';
-
 import { config } from '../../config/index';
 import { WinstonLogger } from '../../core/logger/winston.logger';
 import { ApiError } from '../../core/errors/api.error';
-import { GoogleUser } from '../types/auth.types';
+import { GoogleUser } from './auth.types';
 import { UserRepository } from '../../repositories/UserRepository';
-import { TYPES } from '../../core/di/types';
 
 @injectable()
 export class AuthService {
   private readonly logger = new WinstonLogger('AuthService');
   private readonly oAuth2Client: OAuth2Client;
 
-  constructor(@inject(TYPES.UserRepository) private readonly userRepository: UserRepository) {
+  constructor(private readonly userRepository: UserRepository) {
     this.oAuth2Client = new OAuth2Client(
       config.googleClientID,
       config.googleClientSecret,

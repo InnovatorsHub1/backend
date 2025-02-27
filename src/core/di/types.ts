@@ -10,6 +10,7 @@ export const TYPES = {
   PDFRoutes: Symbol.for('PDFRoutes'),
   ValidationService: Symbol.for('ValidationService'),
   RetryService: Symbol.for('RetryService'),
+  UserRepository: Symbol.for('UserRepository'),
   AuthService: Symbol.for('AuthService'),
   AuthController: Symbol.for('AuthController'),
   AuthRoutes: Symbol.for('AuthRoutes'),

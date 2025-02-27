@@ -1,10 +1,12 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
 import express, { Application } from 'express';
+import { Collection } from 'mongodb';
+import { User } from '@gateway/types/user.types';
 import { AuthService } from '@gateway/services/auth/auth.service';
 import { AuthController } from '@gateway/controllers/auth.controller';
 import { RetryService } from '@gateway/services/retry.service';
-
+import { UserRepository } from '@gateway/repositories/UserRepository';
 import { ValidationService } from '../validation/validation.service';
 import { HealthService } from '../../services/health.service';
 import { HealthController } from '../../controllers/health.controller';
@@ -19,12 +21,22 @@ import { AuthRoutes } from '../../routes/auth.routes';
 
 
 import { TYPES } from './types';
+import { getMongoConnection } from '@gateway/utils/mongoConnection';
 
 
 const container = new Container({ defaultScope: 'Singleton' });
 
 // Create Express application instance
 const expressApp: Application = express();
+
+let userCollection: Collection<User>;
+if (!getMongoConnection().isConnected()) getMongoConnection().connect()
+  .then(() => {
+    userCollection = getMongoConnection().getClient().db().collection<User>('users');
+  });
+
+
+
 
 // Register services with proper scoping
 container.bind<Application>('Application').toConstantValue(expressApp);
@@ -39,6 +51,9 @@ container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
 container.bind<RetryService>(TYPES.RetryService).to(RetryService);
+container.bind<UserRepository>(TYPES.UserRepository)
+  .toDynamicValue(() => new UserRepository(userCollection))
+  .inSingletonScope();
 container.bind<AuthService>(TYPES.AuthService).to(AuthService);
 container.bind<AuthController>(TYPES.AuthController).to(AuthController);
 container.bind<AuthRoutes>(TYPES.AuthRoutes).to(AuthRoutes);

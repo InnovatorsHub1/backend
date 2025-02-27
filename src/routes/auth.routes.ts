@@ -22,17 +22,21 @@ export class AuthRoutes {
     });
 
     // TODO - 1: what I need to here ??
-    this.router.post('/google', this.controller.googleGenerateAuthUrl.bind(this.controller),
+
+    this.router.post('/google',
+      passport.authenticate('google', { scope: ['profile', 'email'] }),
+      this.controller.googleGenerateAuthUrl.bind(this.controller) as any
     );
+
 
     this.router.get('/google/callback',
       passport.authenticate('google', { failureRedirect: '/login' }),
-      this.controller.googleCallback.bind(this.controller),
+      this.controller.googleCallback.bind(this.controller) as any,
     );
 
     this.router.get('/google/user-data/:accessToken',
       googleCheckValidator,
-      this.controller.getUserDataByAccessToken.bind(this.controller),
+      this.controller.getUserDataByAccessToken.bind(this.controller) as any,
     );
   }
 }

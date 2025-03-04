@@ -1,8 +1,8 @@
-import { WinstonLogger } from '@gateway/core/logger/winston.logger';
+import { ExtendedWinstonLogger } from '@gateway/core/logger/winston.logger.extended';
 import { Logger } from 'winston';
 
 describe('WinstonLogger - Masking Sensitive Data', () => {
-  let logger: WinstonLogger;
+  let logger: ExtendedWinstonLogger;
   let mockLogger: jest.Mocked<Logger>; // Properly typed mock logger
 
   beforeEach(() => {
@@ -14,7 +14,7 @@ describe('WinstonLogger - Masking Sensitive Data', () => {
       log: jest.fn(),
     } as unknown as jest.Mocked<Logger>; // Type assertion to satisfy Logger interface
 
-    logger = new WinstonLogger('TestService');
+    logger = new ExtendedWinstonLogger('TestService');
     Object.defineProperty(logger, 'logger', { value: mockLogger }); // Override private logger instance
   });
 

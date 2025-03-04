@@ -1,17 +1,19 @@
-// import { FileTransport } from '@gateway/core/logger/transports/file.transport';
-// import { WinstonLogger } from '@gateway/core/logger/winston.logger';
 // import { mkdir, readdir, readFile, unlink } from 'fs/promises';
 // import { join } from 'path';
 
+// import { FileTransport } from '@gateway/core/logger/transports/file.transport';
+// import { ExtendedWinstonLogger } from '@gateway/core/logger/winston.logger.extended';
+
+
 // describe('Logger Integration', () => {
 //   const logDir = 'test-logs';
-//   let logger: WinstonLogger;
+//   let logger: ExtendedWinstonLogger;
 //   let fileTransport: FileTransport;
 //   let logSpy: jest.SpyInstance;
 
 //   beforeEach(async () => {
 //     await mkdir(logDir, { recursive: true });
-//     logger = new WinstonLogger('IntegrationTest');
+//     logger = new ExtendedWinstonLogger('IntegrationTest');
 //     fileTransport = new FileTransport({
 //       filename: 'integration.log',
 //       logDir,

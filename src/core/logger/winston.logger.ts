@@ -4,20 +4,13 @@ import { ElasticsearchTransport } from 'winston-elasticsearch';
 import { ILogger } from '../../types';
 import { config } from '../../config';
 
-import { MaskableData } from './logger.interfaces';
-
 /**
- * WinstonLogger provides a robust logging implementation with multiple transports
- * @implements {ILogger}
+ * Base Winston Logger providing fundamental logging features.
  */
 export class WinstonLogger implements ILogger {
-  private logger: Logger;
-  private service: string;
+  protected logger: Logger;
+  protected service: string;
 
-  /**
-   * Creates a new WinstonLogger instance
-   * @param {string} serviceName - Name of the service for log identification
-   */
   constructor(serviceName: string) {
     this.service = serviceName;
     const { combine, timestamp, colorize, printf } = format;
@@ -61,105 +54,91 @@ export class WinstonLogger implements ILogger {
     });
   }
 
-  /**
-   * Masks sensitive data in logging metadata
-   * @param {MaskableData} data - Data to be masked
-   * @returns {MaskableData} Masked data object
-   * @private
-   */
-  private maskSensitiveData(data: MaskableData): MaskableData {
-    const sensitiveFields = [
-      'userId',
-      'ipAddress',
-      'correlationId',
-      'requestId',
-    ];
-
-    if (typeof data === 'object' && data !== null) {
-      const maskedData = { ...data };
-      Object.keys(maskedData).forEach((key) => {
-        const value = maskedData[key];
-        if (sensitiveFields.includes(key.toLowerCase())) {
-          maskedData[key] = '***MASKED***';
-        } else if (typeof value === 'object') {
-          maskedData[key] = this.maskSensitiveData(value as MaskableData);
-        }
-      });
-
-      return maskedData;
-    }
-
-    return data;
+  info(message: string, meta?: unknown): void {
+    this.logger.info(message, meta);
   }
 
-  /**
-   * Creates a child logger with parent context
-   * @param {string} name - Name for the child logger
-   * @returns {ILogger} New logger instance with parent prefix
-   */
-  createChildLogger(name: string): ILogger {
-    return new WinstonLogger(`${this.service}:${name}`);
+  error(message: string, meta?: unknown): void {
+    this.logger.error(message, meta);
   }
 
-  /**
-   * Changes the active logging level
-   * @param {string} level - New log level to set
-   */
-  setLogLevel(level: string): void {
-    this.logger.level = level;
+  warn(message: string, meta?: unknown): void {
+    this.logger.warn(message, meta);
   }
 
-  /**
-   * Logs info level message
-   * @param {string} message - Log message
-   * @param {MaskableData} [meta] - Optional metadata
-   */
-  info(message: string, meta?: MaskableData): void {
-    const maskedMeta = meta ? this.maskSensitiveData(meta) : undefined;
-    this.logger.info(message, maskedMeta);
-  }
-
-  /**
-   * Logs error level message
-   * @param {string} message - Error message
-   * @param {Error} [error] - Error object
-   * @param {MaskableData} [meta] - Optional metadata
-   */
-  error(message: string, error?: Error | unknown, meta?: MaskableData): void {
-    const maskedMeta = meta ? this.maskSensitiveData(meta) : undefined;
-    this.logger.error(message, {
-      ...maskedMeta,
-      error: error instanceof Error ?
-        {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        } :
-        error ?
-          {
-            message: error.toString(),
-          } :
-          undefined,
-    });
-  }
-
-  /**
-   * Logs warning level message
-   * @param {string} message - Warning message
-   * @param {MaskableData} [meta] - Optional metadata
-   */
-  warn(message: string, meta?: MaskableData): void {
-    const maskedMeta = meta ? this.maskSensitiveData(meta) : undefined;
-    this.logger.warn(message, maskedMeta);
-  }
-
-  /**
-   * Logs debug level message
-   * @param {string} message - Debug message
-   * @param {MaskableData} [meta] - Optional metadata
-   */
-  debug(message: string, meta?: MaskableData): void {
-    const maskedMeta = meta ? this.maskSensitiveData(meta) : undefined;
-    this.logger.debug(message, maskedMeta);
+  debug(message: string, meta?: unknown): void {
+    this.logger.debug(message, meta);
   }
 }
+
+// import winston, { Logger, format, transports } from 'winston';
+// import { ElasticsearchTransport } from 'winston-elasticsearch';
+
+// import { ILogger } from '../../types';
+// import { config } from '../../config';
+
+// export class WinstonLogger implements ILogger {
+//   private logger: Logger;
+
+//   constructor(serviceName: string) {
+//     const { combine, timestamp, colorize, printf } = format;
+
+//     const logFormat = printf(({ level, message, timestamp: logTimestamp, ...meta }) => {
+//       return `${timestamp} [${serviceName}] ${level}: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
+//     });
+
+//     const transportArray: winston.transport[] = [
+//       new transports.Console({
+//         format: combine(
+//           colorize(),
+//           timestamp(),
+//           logFormat,
+//         ),
+//       }),
+//     ];
+
+//     if (config.isElasticConfigured) {
+//       const elasticTransport = new ElasticsearchTransport({
+//         level: 'info',
+//         transformer: (logData) => ({
+//           '@timestamp': new Date().getTime(),
+//           severity: logData.level,
+//           message: logData.message,
+//           service: serviceName,
+//           fields: logData.meta,
+//         }),
+//         clientOpts: {
+//           node: config.elasticUrl,
+//           maxRetries: 2,
+//           requestTimeout: 10000,
+//           sniffOnStart: false,
+//         },
+//         indexPrefix: `logs-${serviceName.toLowerCase()}-${config.nodeEnv}`,
+//       });
+
+//       transportArray.push(elasticTransport);
+//     }
+
+//     this.logger = winston.createLogger({
+//       level: config.nodeEnv === 'development' ? 'debug' : 'info',
+//       defaultMeta: { service: serviceName },
+//       transports: transportArray,
+//     });
+//   }
+
+//   info(message: string, meta?: unknown): void {
+//     this.logger.info(message, meta);
+//   }
+
+//   error(message: string, meta?: unknown): void {
+//     this.logger.error(message, meta);
+//   }
+
+//   warn(message: string, meta?: unknown): void {
+//     this.logger.warn(message, meta);
+//   }
+
+//   debug(message: string, meta?: unknown): void {
+//     this.logger.debug(message, meta);
+//   }
+// }

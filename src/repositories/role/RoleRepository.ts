@@ -5,7 +5,7 @@ import { Condition } from "mongodb";
 import { StatusCodes } from "http-status-codes";
 import { ApiError } from "@gateway/core/errors/api.error";
 import { tryCatch, tryCatchAsync } from "@gateway/utils/tryCatches";
-
+import { ObjectId } from "mongodb";
 
 
 export class RoleRepository extends BaseRepository<IRole> {
@@ -14,6 +14,14 @@ export class RoleRepository extends BaseRepository<IRole> {
         if (error) getMongoConnection().connect();
         const collection = getMongoConnection().getClient().db().collection<IRole>('roles');
         super(collection);
+    }
+
+    async getById(id: string): Promise<IRole | null> {
+        const { data, error } = await tryCatchAsync(async () => {
+            return await this.collection.findOne({ _id: new ObjectId(id) });
+        });
+        if (error) throw new ApiError('Failed to find role', StatusCodes.INTERNAL_SERVER_ERROR, 'RoleRepository');
+        return data as IRole | null;
     }
 
     async findByRole(role: string): Promise<IRole | null> {

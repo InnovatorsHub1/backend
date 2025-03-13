@@ -1,6 +1,7 @@
 import { WinstonLogger } from '@gateway/core/logger/winston.logger';
 import { MongoClient } from 'mongodb';
 
+
 export interface IMongoConnection {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -17,7 +18,7 @@ export class MongoConnection implements IMongoConnection {
 
   async connect(): Promise<void> {
     try {
-      this.client = new MongoClient(process.env.MONGO_URI!);
+      this.client = new MongoClient(process.env.MONGO_URI!.toString());
       await this.client.connect();
       this.logger.info('Connected to MongoDB');
     } catch (error) {

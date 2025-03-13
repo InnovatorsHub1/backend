@@ -1,5 +1,5 @@
 import { BaseRepository } from "../BaseRepository";
-import { IPermission, Property } from "./IPermission";
+import { IPermission } from "./IPermission";
 import { tryCatch } from "@gateway/utils/tryCatches";
 import { getMongoConnection } from "@gateway/utils/mongoConnection";
 import { ObjectId } from "mongodb";

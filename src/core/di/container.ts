@@ -11,8 +11,9 @@ import { PDFService } from '../../services/pdf/pdf.service';
 import { TemplateService } from '../../services/pdf/template.service';
 import { PDFController } from '../../controllers/pdf.controller';
 import { PDFRoutes } from '../../routes/pdf.routes';
-import { AuthController } from '../../controllers/auth.controller';
-import { AuthRoutes } from '../../routes/auth.routes';
+import { QueueService } from '../../services/queue/queue.service';
+import { QueueController } from '../../controllers/queue.controller';
+import { QueueRoutes } from '../../routes/queue.routes';
 import { TYPES } from './types';
 import { RetryService } from '../../services/retry.service';
 import { JwtService } from '../../services/jwt/jwt.service';
@@ -20,6 +21,9 @@ import { AuthService } from '../../services/auth/auth.service';
 import { PasswordService } from '../../services/auth/password.service';
 import { SessionService } from '../../services/auth/session.service';
 import { UserRepository } from '../../repositories/user/UserRepository';
+import { AuthController } from '@gateway/controllers/auth.controller';
+import { AuthRoutes } from '@gateway/routes/auth.routes';
+
 
 const container = new Container({ defaultScope: 'Singleton' });
 
@@ -38,6 +42,9 @@ container.bind<PDFService>(TYPES.PDFService).to(PDFService);
 container.bind<TemplateService>(TYPES.TemplateService).to(TemplateService);
 container.bind<PDFController>(TYPES.PDFController).to(PDFController);
 container.bind<PDFRoutes>(TYPES.PDFRoutes).to(PDFRoutes);
+container.bind<QueueService>(TYPES.QueueService).to(QueueService);
+container.bind<QueueController>(TYPES.QueueController).to(QueueController);
+container.bind<QueueRoutes>(TYPES.QueueRoutes).to(QueueRoutes); 
 container.bind<UserRepository>(TYPES.UserRepository).to(UserRepository);
 container.bind<JwtService>(TYPES.JwtService).to(JwtService);
 container.bind<AuthService>(TYPES.AuthService).to(AuthService);

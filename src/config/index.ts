@@ -19,6 +19,20 @@ const getConfig = (): IConfig => ({
   jwtPrivateKeyPath: path.resolve(process.cwd(), process.env.JWT_PRIVATE_KEY_PATH || './keys/private.pem'),
   jwtRefreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
   jwtAccessExpiration: process.env.JWT_ACCESS_EXPIRATION || '1h',
+
+  // Redis configuration
+  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  queueName: process.env.QUEUE_NAME || 'default',
+  maxRetries: Number(process.env.MAX_RETRIES) || 3,
+  retryDelay: Number(process.env.RETRY_DELAY) || 300000, // 5 minutes
+  jobTimeout: Number(process.env.JOB_TIMEOUT) || 3600000, // 1 hour
+
+  // Worker configuration
+  concurrency: Number(process.env.CONCURRENCY) || 4,
+  prefetchCount: Number(process.env.PREFETCH_COUNT) || 10,
+  pollInterval: Number(process.env.POLL_INTERVAL) || 1000, // 1 second
+  maxTasksPerChild: Number(process.env.MAX_TASKS_PER_CHILD) || 1000
+
 });
 
 const validateConfig = (config: IConfig): void => {

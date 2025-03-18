@@ -20,7 +20,7 @@ const logger = new WinstonLogger('QueueService');
 
 @injectable()
 export class QueueService {
-  private queue: Queue;
+  protected queue: Queue;
   private queueEvents: QueueEvents;
   private redisConnection : IORedis;
   
@@ -61,16 +61,38 @@ export class QueueService {
    * @param priority - Job priority (lower number = higher priority).
    */
   public async enqueue<T>(data: T, delay = 0, priority = 1): Promise<Job> {
-    const job = await this.queue.add('job', data, {
-      attempts: config.maxRetries,
-      backoff: { type: 'fixed', delay: config.retryDelay }, 
+    const jobOptions: {
+      delay: number;
+      priority: number;
+      removeOnComplete: boolean;
+      removeOnFail: boolean;
+      attempts?: number;
+      backoff?: { type: string; delay: number };
+    } = {
       delay,
-      priority
-    });
+      priority,
+      removeOnComplete: false,
+      removeOnFail: false
+    };
+
+    // Check if this is a job that should fail
+    if (typeof data === 'object' && data !== null && 'shouldFail' in data && (data as any).shouldFail) {
+      jobOptions.attempts = 1;
+      jobOptions.removeOnFail = false;
+      logger.info(`⚠️ Configuring job to fail with single attempt`);
+    } else {
+      jobOptions.attempts = config.maxRetries;
+      jobOptions.backoff = { type: 'fixed', delay: config.retryDelay };
+    }
+
+    // Get the job name from the data if it exists, otherwise use 'default'
+    const jobName = typeof data === 'object' && data !== null && 'name' in data ? 
+      (data as any).name : 'default';
+
+    const job = await this.queue.add(jobName, data, jobOptions);
 
     if(!job){
       throw new Error('Failed to enqueue job');
-
     }
     return job;
   }
@@ -90,9 +112,9 @@ public async dequeue(jobId: string): Promise<boolean> {
 
     const jobState = await job.getState();
 
-    const mappableStates = [JobState.QUEUED, JobState.SCHEDULED]; 
+    const dequeableStates = ['waiting', 'delayed', 'prioritized']; 
 
-    if (mappableStates.includes(jobState as JobState)) {
+    if (dequeableStates.includes(jobState)) {
       await job.remove();
       logger.info(`🗑️ Job ${jobId} successfully dequeued.`);
       return true;
@@ -188,25 +210,39 @@ public async dequeue(jobId: string): Promise<boolean> {
    * @param jobId - The job ID.
    * @returns True if retried, otherwise false.
    */
-  public async retryJob(jobId: string): Promise<boolean> {
+  public async retryJob(jobId: string): Promise<Job | null> {
     try {
       const job = await this.queue.getJob(jobId);
       if (!job) {
         logger.warn(`⚠️ Job ${jobId} not found.`);
-        return false;
+        return null;
       }
   
       const state = await job.getState();
       if (state !== 'failed') {
         logger.warn(`⚠️ Job ${jobId} is not in a failed state.`);
-        return false;
+        return null;
       }
-      logger.info(`🔄 Retrying job ${jobId}...`);
-      await job.retry();
-      return true;
+
+      // Remove the old job
+      await job.remove();
+
+      // Create a new job with the same name, data, and options
+      const jobOptions = {
+        attempts: 1,
+        removeOnComplete: false,
+        removeOnFail: false, // keep failed jobs for debugging
+      };
+
+
+      // Create a new job with the same name and data
+      const newJob = await this.queue.add(job.name, job.data, jobOptions);
+      logger.info(`🔄 Job ${jobId} retried with new job ID ${newJob.id}`);
+      return newJob;
     } catch (error) {
-      logger.error(`❌ Could not retry job ${jobId}:`, error);
-      return false;
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`❌ Error retrying job ID ${jobId}: ${errorMessage}`);
+      return null;
     }
   }
   
@@ -263,5 +299,22 @@ private setupEventListeners(): void {
     await this.queue.close();
     await this.queueEvents.close();
     await this.redisConnection.quit();
+  }
+
+  async retry(jobId: string): Promise<boolean> {
+    try {
+      const job = await this.queue.getJob(jobId);
+      if (!job) {
+        logger.warn(`⚠️ Job ${jobId} not found for retry`);
+        return false;
+      }
+
+      logger.info(`🔄 Retrying job ${jobId}`);
+      await job.retry();
+      return true;
+    } catch (error) {
+      logger.error(`❌ Error retrying job ${jobId}:`, error);
+      return false;
+    }
   }
 }

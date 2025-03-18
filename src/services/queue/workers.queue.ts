@@ -41,6 +41,15 @@ async function processJob(job: Job) {
         await runTaskWithProgress(job, totalSteps);
         break;
 
+      case 'fail':
+        logger.info(`🔄 Processing fail task for job ${job.id}`);
+        if (job.data.shouldFail) {
+          logger.error(`❌ Job ${job.id} failed as requested`);
+          throw new Error('Job failed as requested');
+        }
+        await runTaskWithProgress(job, totalSteps);
+        break;
+
       default:
         logger.warn(`⚠️ Job ${job.id} has no recognized name. Processing as a generic job.`);
         await runTaskWithProgress(job, totalSteps);
@@ -52,8 +61,10 @@ async function processJob(job: Job) {
   } catch (error) {
     if (error instanceof Error) {
       logger.error(`❌ Error processing job ${job.id}: ${error.message}`);
+      await job.updateProgress(0);
       throw error;
     }
+    throw error;
   }
 }
 
@@ -64,8 +75,8 @@ if (!global.workerInstance) {
     async (job) => processJob(job),
     {
       connection: global.redisInstance,
-      concurrency: config.concurrency,
-      limiter: { max: 50, duration: 1000 },
+      concurrency: 50,
+      limiter: { max: 100, duration: 1000 },
     }
   );
 

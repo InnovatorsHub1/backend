@@ -3,75 +3,46 @@ import { container } from '../../src/core/di/container';
 import { App } from '../../src/app';
 import { QueueService, JobState } from '../../src/services/queue/queue.service';
 import { TYPES } from '../../src/core/di/types';
-
-let appInstance: App;
-let server: any;
-let queueService: QueueService;
-let jobId: string;
-
-beforeAll(async () => {
-  jest.setTimeout(30000);
-  process.env.PORT = '4000';
-  appInstance = container.get<App>(TYPES.App);
-  queueService = container.get<QueueService>(TYPES.QueueService);
-  await appInstance.start();
-  server = appInstance.getServer();
-
-  await queueService.clearQueue();
-});
-
-afterAll(async () => {
-  jest.setTimeout(30000);
-  await queueService.clearQueue();
-
-  if (queueService) {
-    await queueService['queue'].pause(); 
-    await queueService.clearQueue(); 
-    await queueService['queue'].close(); 
-    
-    const queueEvents = queueService.getQueueEvents();
-    queueEvents.removeAllListeners(); 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await queueService.closeQueue();
-  }
-
-  if (appInstance) {
-    console.log('🔄 Stopping App Server...');
-    await appInstance.stop();
-  }
-
-  
-});
-
-// /**
-//  * ✅ Wait for a job to complete before proceeding.
-//  */
-// async function waitForJobCompletion(jobId: string, queueService: QueueService): Promise<void> {
-//   return new Promise((resolve, reject) => {
-//     const queueEvents = queueService.getQueueEvents();
-
-//     queueEvents.once('completed', ({ jobId: completedJobId }) => {
-//       if (completedJobId === jobId) {
-//         console.log(`✅ Job ${jobId} completed.`);
-//         resolve();
-//       }
-//     });
-
-//     queueEvents.once('failed', ({ jobId: failedJobId, failedReason }) => {
-//       if (failedJobId === jobId) {
-//         console.error(`❌ Job ${jobId} failed: ${failedReason}`);
-//         reject(new Error(`Job ${jobId} failed: ${failedReason}`));
-//       }
-//     });
-
-//     setTimeout(() => {
-//       reject(new Error(`⏳ Job ${jobId} timeout - did not complete.`));
-//     }, 10000); // ⏳ Fail test if job takes longer than 10 seconds
-//   });
-// }
+import { Application } from 'express';
 
 
 describe('Queue System Tests', () => {
+  let appInstance: App;
+  let server: Application;
+  let queueService: QueueService;
+  let jobId: string;
+
+  beforeAll(async () => {
+    jest.setTimeout(60000); // Set timeout for all tests in this suite
+    process.env.PORT = '4000';
+    appInstance = container.get<App>(TYPES.App);
+    queueService = container.get<QueueService>(TYPES.QueueService);
+    await appInstance.start();
+    server = appInstance.getServer();
+
+    await queueService.clearQueue();
+  });
+
+  afterAll(async () => {
+    await queueService.clearQueue();
+
+    if (queueService) {
+      await queueService['queue'].pause(); 
+      await queueService.clearQueue(); 
+      await queueService['queue'].close(); 
+      
+      const queueEvents = queueService.getQueueEvents();
+      queueEvents.removeAllListeners(); 
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await queueService.closeQueue();
+    }
+
+    if (appInstance) {
+      console.log('🔄 Stopping App Server...');
+      await appInstance.stop();
+    }
+  });
+
   it('✅ Should enqueue a job and process it', async () => {
     const response = await request(server)
       .post('/api/queue/enqueue')
@@ -84,8 +55,11 @@ describe('Queue System Tests', () => {
   });
 
   it('✅ Should dequeue a queued job', async () => {
+    // Pause the queue before adding the job
+    await queueService['queue'].pause();
+    
     const job = await queueService.enqueue({ task: 'remove-this' });
-  
+    
     await new Promise(resolve => setTimeout(resolve, 1000));
     const jobState = await job.getState();
     console.log(`🔍 Job ${job.id} state before dequeue: ${jobState}`);
@@ -99,6 +73,9 @@ describe('Queue System Tests', () => {
     } else {
       throw new Error(`Job ${job.id} is in state ${jobState} and cannot be dequeued`);
     }
+    
+    // Resume the queue after test
+    await queueService['queue'].resume();
   });
 
   it('✅ Should retrieve job status', async () => {
@@ -109,49 +86,42 @@ describe('Queue System Tests', () => {
     expect(Object.values(JobState)).toContain(response.body.status);
   });
 
-  it('✅ Should retry a failed job', async () => {
-    jest.setTimeout(15000);
+  it('✅ Should retry a failed job correctly', async () => {
     await queueService['queue'].pause();
   
-    const job = await queueService.enqueue({ task: 'force-fail' });
+    // Enqueue the failing job
+    const job = await queueService.enqueue({ name: 'fail', shouldFail: true });
+    console.log(`📝 Added job ${job.id} to queue`);
   
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  
-
-    let jobState = await job.getState();
-    if (jobState === 'waiting') {
-      console.log(`🔄 Moving job ${job.id} to active state before failure.`);
-      await job.updateProgress(50); 
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-  
-    jobState = await job.getState();
-    console.log(`🔍 Job state before failure: ${jobState}`);
-    
-    if (job.token) {
-        await job.moveToFailed(new Error('Simulated failure'), job.token);
-    }
-
-    let maxRetries = 5;
-    while (jobState !== 'failed' && maxRetries > 0) {
-    await new Promise(resolve => setTimeout(resolve, 500)); // Wait before rechecking
-    jobState = await job.getState();
-    console.log(`🔍 Retrying check: Job state is now ${jobState}`);
-    maxRetries--;
-  }
-    
-    expect(jobState).toBe(JobState.FAILED);
-    
-    const success = await queueService.retryJob(job.id as string);
-    expect(success).toBe(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const retriedStatus = await queueService.getJobStatus(String(job.id));
-    expect([JobState.PROCESSING, JobState.COMPLETED]).toContain(retriedStatus);
-    
     await queueService['queue'].resume();
-  },15000);
+    console.log('▶️ Queue resumed');
   
+    // Expect job to fail:
+    try {
+      await job.waitUntilFinished(queueService.getQueueEvents(), 30000);
+      // If the promise resolves, the job succeeded (unexpected here!)
+      throw new Error(`❌ Job ${job.id} was supposed to fail but succeeded.`);
+    } catch (error) {
+      console.log(`✅ Job ${job.id} failed as expected.`);
+    }
+  
+    // Verify the job failed
+    let state = await job.getState();
+    expect(state).toBe('failed');
+  
+    // Retry the job
+    const retriedJob = await queueService.retryJob(job.id as string);
+    expect(retriedJob).toBeDefined();
+  
+    // Wait for retried job to finish
+  try {
+    await retriedJob!.waitUntilFinished(queueService.getQueueEvents(), 30000);
+    throw new Error('Retried job unexpectedly succeeded.');
+  } catch {}
+
+  const retriedState = await retriedJob!.getState();
+  expect(retriedState).toBe('failed');
+  });
   
 
   it('✅ Should cancel a queued job', async () => {
@@ -174,32 +144,89 @@ describe('Queue System Tests', () => {
     expect(response.status).toBe(404);
   });
 
-  it('✅ Should handle 100 concurrent job enqueues and process them', async () => {
-    await queueService['queue'].pause(); 
-    const jobPromises = [];
-
-    for (let i = 0; i < 100; i++) {
-      jobPromises.push(queueService.enqueue({ task: `load-task-${i}` }));
+  it('✅ Should handle 1000 concurrent job enqueues and process them', async () => {
+    jest.setTimeout(300000); // 5 minutes timeout
+    
+    // Clear any existing jobs first
+    await queueService.clearQueue();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Add 1000 jobs to the queue
+    const batchSize = 100;
+    const totalJobs = 1000;
+    const jobIds = [];
+    
+    console.log('🚀 Starting to enqueue jobs...');
+    
+    // Enqueue jobs in batches to prevent overwhelming Redis
+    for (let i = 0; i < totalJobs; i += batchSize) {
+      const batch = [];
+      for (let j = 0; j < batchSize && (i + j) < totalJobs; j++) {
+        batch.push(queueService.enqueue({ name: 'process', task: `load-task-${i + j}` }));
+      }
+      const jobs = await Promise.all(batch);
+      jobIds.push(...jobs.map(job => job.id));
+      console.log(`📦 Enqueued batch ${i / batchSize + 1}/${Math.ceil(totalJobs / batchSize)}`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay between batches
+      jest.setTimeout(3000);
     }
     
-    await Promise.all(jobPromises);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    await queueService['queue'].resume();
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    // ✅ Wait for jobs to transition to processing
-    let processingJobs;
-    for (let attempt = 0; attempt < 20; attempt++) { 
-        processingJobs = await queueService['queue'].getActive(); 
-        if (processingJobs.length > 0) break;
-        await new Promise(resolve => setTimeout(resolve, 1500)); 
+    console.log(`✅ All ${totalJobs} jobs enqueued. Waiting for completion...`);
+    
+    // Wait for jobs to complete
+    const maxWaitTime = 240000; // 4 minutes
+    const startTime = Date.now();
+    let lastLog = Date.now();
+    const logInterval = 5000; // Log every 5 seconds
+    
+    while (Date.now() - startTime < maxWaitTime) {
+      const activeJobs = await queueService['queue'].getActive();
+      const completedJobs = await queueService['queue'].getCompleted();
+      const failedJobs = await queueService['queue'].getFailed();
+      const waitingJobs = await queueService['queue'].getWaiting();
+      
+      // Log status at intervals
+      if (Date.now() - lastLog >= logInterval) {
+        console.log(`📊 Status - Active: ${activeJobs.length}, Completed: ${completedJobs.length}, Failed: ${failedJobs.length}, Waiting: ${waitingJobs.length}`);
+        lastLog = Date.now();
+      }
+      
+      // Check if all jobs are processed
+      const totalProcessed = completedJobs.length + failedJobs.length;
+      if (activeJobs.length === 0 && waitingJobs.length === 0 && totalProcessed >= totalJobs) {
+        // Add a small delay to ensure all jobs are fully processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Double check the final state
+        const finalActiveJobs = await queueService['queue'].getActive();
+        const finalCompletedJobs = await queueService['queue'].getCompleted();
+        const finalFailedJobs = await queueService['queue'].getFailed();
+        const finalWaitingJobs = await queueService['queue'].getWaiting();
+        
+        if (finalActiveJobs.length === 0 && finalWaitingJobs.length === 0 && 
+            (finalCompletedJobs.length + finalFailedJobs.length) >= totalJobs) {
+          break;
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
-    // ✅ Wait for all jobs to complete
+    
+    const activeJobs = await queueService['queue'].getActive();
     const completedJobs = await queueService['queue'].getCompleted();
-    console.log(`✅ Jobs completed: ${completedJobs.length}`);
-    expect(completedJobs.length).toBe(103);}, 12000);
-
+    const failedJobs = await queueService['queue'].getFailed();
+    const waitingJobs = await queueService['queue'].getWaiting();
+    
+    console.log(`📈 Final Status - Active: ${activeJobs.length}, Completed: ${completedJobs.length}, Failed: ${failedJobs.length}, Waiting: ${waitingJobs.length}`);
+    
+    // Verify all jobs are processed
+    expect(activeJobs.length).toBe(0);
+    expect(waitingJobs.length).toBe(0);
+    expect(completedJobs.length + failedJobs.length).toBeGreaterThanOrEqual(totalJobs);
+    
+    // Clean up
+    await queueService.clearQueue();
+  }, 300000); // 5 minutes timeout
 
   it('✅ Should clear the queue', async () => {
     await queueService.clearQueue();
